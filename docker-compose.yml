@@ -1,0 +1,30 @@
+services:
+  web:
+    image: php:8.0-apache
+    container_name: php-apache
+    ports:
+    - "80:80"
+    volumes:
+    - ./www:/var/www/html
+  mysql:
+    image: mysql:latest
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: greta_teacher
+      MYSQL_DATABASE: db_refuge_animaux
+      MYSQL_USER: greta
+      MYSQL_PASSWORD: greta_refuge
+    ports:
+    - "3306:3306"
+    volumes:
+    - ./db:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_container
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: greta_teacher
+    ports:
+    - "8090:80"
