@@ -1,2 +1,5 @@
 # Ignore MySQL socket files
 db/mysql.sock
+db
+assets/css
+assets/fonts
