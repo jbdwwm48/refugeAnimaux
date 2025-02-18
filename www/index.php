@@ -9,9 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Refuge des Compagnons Palet</title>
     <!-- Bootstrap CSS -->
-    <link href="assets/src/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./assets/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons CSS -->
-    <link href="assets/src/css/bootstrap-icons.css" rel="stylesheet">
+    <link href="./assets/css/bootstrap-icons.css" rel="stylesheet">
     <style>
         .navbar-custom {
             background-color: #4CAF50; /* Vert */
@@ -131,6 +131,6 @@
         </div>
     </footer>
 
-    <script src="assets/src/js/bootstrap.bundle.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
