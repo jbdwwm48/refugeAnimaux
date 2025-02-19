@@ -1,6 +1,6 @@
 services:
   web:
-    image: php:8.0-apache
+    build: .
     container_name: php-apache
     ports:
     - "80:80"
