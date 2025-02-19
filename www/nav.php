@@ -17,11 +17,11 @@
                         <a class="nav-link text-white" href="#">Contact</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Gestion</a>
-                    </li> 
+                        <a class="nav-link text-white" href="./backoffice/dashboard.php">Gestion</a>
+                    </li>
                 </ul>
             </div>
-            <div >
+            <div>
                 <form class="d-flex flex-column flex-md-row flex-wrap justify-content-md-center gap-2 ps-md-5" action=".php" method="POST">
                     <div>
                         <input placeholder="Utilisateur" type="text" name="utilisateur" id="utilisateur">
