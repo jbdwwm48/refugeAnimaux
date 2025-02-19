@@ -1,24 +1,16 @@
-<<<<<<< Updated upstream
-# Ignore MySQL socket files
-# Ignorer le dossier contenant la base MySQL
-=======
-# Ignorer tout le dossier db/ contenant les fichiers MySQL
->>>>>>> Stashed changes
-db/
+# # Ignore MySQL socket files
+# # Ignorer le dossier contenant la base MySQL
+# db/
+# backup/
 
 # Ignorer les fichiers temporaires de Docker
 docker-compose.override.yml
 *.pid
 *.log
 
-<<<<<<< Updated upstream
-# Ignorer les fichiers SQL temporaires (mais garder les exports)
-*.sql~
+# # Ignorer les fichiers SQL temporaires (mais garder les exports)
+# *.sql~
 
 # Ingorer les fichiers lier a Bootstrap
 assets/css
 assets/fonts
-=======
-# Ignorer les fichiers SQL temporaires
-*.sql~
->>>>>>> Stashed changes
