@@ -29,32 +29,10 @@
     </style>
 </head>
 <body>
-
     <!-- Header avec Nav -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid">
-            <a class="navbar-brand text-white" href="#">Refuge des Compagnons Palet</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Accueil</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="#">A propos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Contact</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Gestion</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<?php 
+        include('./nav.php')
+    ?>
 
     <!-- Introduction -->
     <div class="container mt-4">
@@ -67,10 +45,10 @@
     </div>
 
     <!-- Barre de recherche avec dropdown -->
-    <div class="container species-dropdown w-25 ">
+    <div class="container species-dropdown w-25 m-5">
         <div class="row">
             <div class="col">
-                <select class="form-select" aria-label="Default select example">
+                <select class="form-select " aria-label="Default select example">
                     <option selected>Choisissez une espèce</option>
                     <option value="1">Ane</option>
                     <option value="2">Chat</option>
@@ -88,7 +66,7 @@
     </div>
 
     <main>
-    <section class="d-flex justify-content-center flex-wrap w-75 m-auto gap-5 ">
+    <section class="d-flex justify-content-center flex-wrap m-auto gap-5 ">
     <div class="card shadow border-2 border-success" style="width: 18rem ;">
         <img src="https://cdn.pixabay.com/photo/2015/09/30/16/50/pug-965766_1280.jpg" class="card-img-top" alt="chien">
         <div class="card-body">
