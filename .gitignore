@@ -1,0 +1,11 @@
+# Ignorer tout le dossier db/ contenant les fichiers MySQL
+db/
+backup/
+
+# Ignorer les fichiers temporaires de Docker
+docker-compose.override.yml
+*.pid
+*.log
+
+# Ignorer les fichiers SQL temporaires
+*.sql~
