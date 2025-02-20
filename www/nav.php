@@ -1,3 +1,10 @@
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+include_once 'auth/idle_check.php';
+?>
 <nav class="navbar navbar-expand-lg navbar-custom">
     <div class="container-fluid">
         <a class="navbar-brand text-white" href="#">Refuge des Compagnons Palet</a>
@@ -14,10 +21,17 @@
                         <a class="nav-link text-white" href="#">A propos</a>
                     </li>
                     <li class="nav-item">
+<<<<<<< Updated upstream
                         <a class="nav-link text-white" href="#">Contact</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="./backoffice/dashboard.php">Gestion</a>
+=======
+                        <a class="nav-link text-white" href="auth/formulaire.php">testAuth</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="backoffice/dashboard.php">Gestion</a>
+>>>>>>> Stashed changes
                     </li>
                 </ul>
             </div>
