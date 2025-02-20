@@ -5,10 +5,10 @@ if (session_status() == PHP_SESSION_NONE) {
 
 if (isset($_SESSION['utilisateur'])) {
     echo "<p>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
-    echo '<a href="logout.php"><button>Déconnexion</button></a>';
+    echo '<a href="auth/logout.php"><button>Déconnexion</button></a>';
 } else {
     if (isset($_SESSION['error_message'])) {
-        echo "<p>" . $_SESSION['error_message'] . "</p>";
+        echo "<p style='color: red;'>" . $_SESSION['error_message'] . "</p>";
         unset($_SESSION['error_message']); // Supprimer le message d'erreur après l'affichage
     }
 ?>
