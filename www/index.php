@@ -37,7 +37,6 @@
     <?php
     include('./nav.php')
     ?>
-
     <!-- Introduction -->
     <div class="container mt-4">
         <div class="row">
@@ -47,7 +46,6 @@
             </div>
         </div>
     </div>
-
     <!-- Barre de recherche avec dropdown -->
     <div class="container species-dropdown w-25 m-5">
         <div class="row">
@@ -251,16 +249,12 @@
         </div> -->
                 </div>
             </div>
-
         </section>
-
     </main>
-
     <!-- Footer -->
     <?php
     include_once('./footer.php')
     ?>
-
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
 </body>
 

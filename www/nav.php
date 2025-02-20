@@ -13,11 +13,8 @@
                     <li class="nav-item">
                         <a class="nav-link text-white" href="#">A propos</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="auth/formulaire.php">testAuth</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="backoffice/dashboard.php">Gestion</a>
+                    <li>
+                        
                     </li>
                 </ul>
             </div>
