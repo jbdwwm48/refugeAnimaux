@@ -8,39 +8,22 @@
             <div>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Accueil</a>
+                        <a class="nav-link text-white" href="index.php">Accueil</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-white" href="#">A propos</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="#">Contact</a>
+                        <a class="nav-link text-white" href="auth/formulaire.php">testAuth</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="./backoffice/dashboard.php">Gestion</a>
+                        <a class="nav-link text-white" href="backoffice/dashboard.php">Gestion</a>
                     </li>
                 </ul>
             </div>
             <div>
-                <form class="d-flex flex-column flex-md-row flex-wrap justify-content-md-center gap-2 ps-md-5" action=".php" method="POST">
-                    <div>
-                        <input placeholder="Utilisateur" type="text" name="utilisateur" id="utilisateur">
-                    </div>
-                    <div>
-                        <input placeholder="Password" type="password" id="password" name="password" required>
-                    </div>
-                    <div>
-                        <button type="submit">Connexion</button>
-                    </div>
-                </form>
+                <?php include_once('auth/formulaire.php'); ?>
             </div>
         </div>
     </div>
-    <?php
-    // Si un utilisateur est connecté
-    if (isset($_SESSION['utilisateur'])) {
-        echo "<p>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
-        echo '<a href=".php"><button>Déconnexion</button></a>';
-    }
-    ?>
 </nav>
