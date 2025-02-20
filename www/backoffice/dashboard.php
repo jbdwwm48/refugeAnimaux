@@ -1,3 +1,10 @@
+<<<<<<< Updated upstream
+=======
+<?php
+session_start();
+?>
+
+>>>>>>> Stashed changes
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -9,6 +16,25 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<<<<<<< Updated upstream
+=======
+
+    <!-- Styles personnalisés de votre collègue -->
+    <style>
+        .navbar-custom {
+            background-color: #4CAF50;
+        }
+
+        .footer-custom {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .card {
+            margin: 10px;
+        }
+    </style>
+>>>>>>> Stashed changes
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
