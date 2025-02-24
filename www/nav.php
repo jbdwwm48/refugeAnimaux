@@ -13,9 +13,6 @@
                     <li class="nav-item">
                         <a class="nav-link text-white" href="#">A propos</a>
                     </li>
-                    <li>
-                        
-                    </li>
                 </ul>
             </div>
             <div>
