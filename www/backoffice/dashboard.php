@@ -1,8 +1,6 @@
-
 <?php
 session_start();
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -18,6 +16,7 @@ session_start();
     <!-- Styles personnalisés de votre collègue -->
     <style>
         .navbar-custom {
+            color: black;
         }
 
         .footer-custom {
@@ -33,16 +32,9 @@ session_start();
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
     <!-- Navbar -->
-    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link">Accueil</a>
-            </li>
-        </ul>
-    </nav>
+    <?php
+    include('../nav.php')
+    ?>
     <!-- Sidebar -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <a href="#" class="brand-link">
@@ -54,7 +46,19 @@ session_start();
                     <li class="nav-item">
                         <a href="#" class="nav-link active">
                             <i class="nav-icon fas fa-users"></i>
-                            <p>Gestion des utilisateurs</p>
+                            <p>Gestion du personnel</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../backoffice/GestionRefuge.php" class="nav-link active">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Liste des animaux</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="../backoffice/GestionCages.php" class="nav-link active">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Cages</p>
                         </a>
                     </li>
                 </ul>

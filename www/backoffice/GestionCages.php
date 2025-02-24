@@ -4,8 +4,8 @@ require '../auth/initDb.php';
 
 $utilisateur_connecte = isset($_SESSION['id_personnel']);
 
-$requete_animaux = $pdo->query("SELECT a.id_animal, a.nom, a.genre, a.numero, c.numero AS cage FROM animal a LEFT JOIN cage c ON a.id_cage = c.id_cage");
-$animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
+$requete_cages = $pdo->query("SELECT c.id_cage, c.numero, COUNT(a.id_animal) AS occupation FROM cage c LEFT JOIN animal a ON c.id_cage = a.id_cage GROUP BY c.id_cage");
+$cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
 
 $personnels = [];
 if ($utilisateur_connecte) {
@@ -29,35 +29,32 @@ if ($utilisateur_connecte) {
 <body>
     <div class="container mt-4">
         <h1 class="mb-4 text-center">Backoffice - Gestion des Animaux</h1>
-        
-        <h2 class="mt-4 text-center">Liste des Animaux</h2>
+        <h2 class="mt-4 text-center">Occupation des Cages</h2>
         <div class="table-responsive">
             <table class="table table-sm table-bordered table-striped text-center">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID</th>
-                        <th>Nom</th>
-                        <th>Genre</th>
                         <th>Numéro</th>
-                        <th>Cage</th>
-                        <th>Action</th>
+                        <th>Occupation</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($animaux as $animal): ?>
+                    <?php foreach ($cages as $cage): ?>
                     <tr>
-                        <td><?= $animal['id_animal'] ?></td>
-                        <td><?= htmlspecialchars($animal['nom']) ?></td>
-                        <td><?= htmlspecialchars($animal['genre']) ?></td>
-                        <td><?= htmlspecialchars($animal['numero']) ?></td>
-                        <td><?= $animal['cage'] ?? 'Non assignée' ?></td>
-                        <td><a href="localhost/backoffice/fiche_animal.php?id=3" class="btn btn-info btn-sm">Voir</a></td>
-                        </tr>
+                        <td><?= $cage['numero'] ?></td>
+                        <td>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: <?= ($cage['occupation'] > 0) ? '100%' : '0%' ?>;" aria-valuenow="<?= $cage['occupation'] ?>" aria-valuemin="0" aria-valuemax="1">
+                                    <?= $cage['occupation'] > 0 ? 'Occupée' : 'Libre' ?>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-
+        
         <?php if ($utilisateur_connecte): ?>
         <h2 class="mt-4 text-center">Liste des Employés</h2>
         <div class="table-responsive">
