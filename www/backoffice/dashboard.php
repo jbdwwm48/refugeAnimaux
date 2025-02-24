@@ -7,7 +7,7 @@ session_start();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Utilisateurs - AdminLTE</title>
+    <title>Dashboard Utilisateurs</title>
 
     <!-- Bootstrap & AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
@@ -17,12 +17,12 @@ session_start();
     <!-- Styles personnalisés de votre collègue -->
     <style>
         .navbar-custom {
-            background-color: #4CAF50;
+            background-color:rgb(72, 149, 182);
             /* Vert */
         }
 
         .footer-custom {
-            background-color: #4CAF50;
+            background-color:rgb(72, 149, 182);
             color: white;
         }
 
