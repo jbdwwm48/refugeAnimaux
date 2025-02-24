@@ -4,14 +4,14 @@
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse bg-blue " id="navbarNav">
+        <div class="collapse navbar-collapse" id="navbarNav">
             <div>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="index.php">Accueil</a>
+                        <a class="nav-link text-white" href="./index.php">Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="#">A propos</a>
+                        <a class="nav-link text-white" href="./footer.php">A propos</a>
                     </li>
                 </ul>
             </div>
