@@ -3,12 +3,13 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+include_once 'idle_check.php';
+
 if (isset($_SESSION['utilisateur'])) {
     echo "<p>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
 
-    echo '<a href="../backoffice/dashboard.php"><button>Dashboard</button></a>';
+    echo '<a href="../backoffice/GestionRefuge.php"><button>Gestion du Refuge</button></a>';
     echo '<a href="../auth/logout.php"><button>Déconnexion</button></a>';
-  
 } else {
     if (isset($_SESSION['error_message'])) {
         echo "<p style='color: red;'>" . $_SESSION['error_message'] . "</p>";
