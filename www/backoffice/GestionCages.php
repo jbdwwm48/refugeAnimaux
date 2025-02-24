@@ -16,6 +16,7 @@ if ($utilisateur_connecte) {
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Backoffice Refuge</title>
@@ -27,6 +28,10 @@ if ($utilisateur_connecte) {
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <?php
+    include('../nav.php')
+    ?>
     <div class="container mt-4">
         <h1 class="mb-4 text-center">Backoffice - Gestion des Animaux</h1>
         <h2 class="mt-4 text-center">Occupation des Cages</h2>

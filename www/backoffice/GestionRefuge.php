@@ -27,6 +27,10 @@ if ($utilisateur_connecte) {
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <?php
+    include('../nav.php')
+    ?>
     <div class="container mt-4">
         <h1 class="mb-4 text-center">Backoffice - Gestion des Animaux</h1>
         
