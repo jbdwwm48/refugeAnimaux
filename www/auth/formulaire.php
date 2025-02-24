@@ -14,10 +14,10 @@ if (isset($_SESSION['utilisateur'])) {
         unset($_SESSION['error_message']); // Supprimer le message d'erreur après l'affichage
     }
 ?>
-    <form class="d-flex flex-column flex-md-row flex-wrap justify-content-md-center gap-2 ps-md-5" action="auth/login.php" method="POST">
-        <input placeholder="Login" type="text" id="login" name="login" required>
-        <input placeholder="Password" type="password" id="mot_de_passe" name="mot_de_passe" required>
-        <button type="submit">Se connecter</button>
+    <form class="d-flex flex-column flex-md-row flex-wrap justify-content-md-center gap-2" action="auth/login.php" method="POST">
+        <input placeholder="Login"  class="rounded" type="text" id="login" name="login" required>
+        <input placeholder="Password" class="rounded" type="password" id="mot_de_passe" name="mot_de_passe" required>
+        <button type="submit" type="button" class="btn btn-success btn-rounded">Se connecter</button>
     </form>
 <?php
 }
