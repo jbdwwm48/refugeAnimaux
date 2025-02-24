@@ -8,7 +8,6 @@ if (isset($_SESSION['utilisateur'])) {
 
     echo '<a href="../backoffice/dashboard.php"><button>Dashboard</button></a>';
     echo '<a href="../auth/logout.php"><button>Déconnexion</button></a>';
-
 } else {
     if (isset($_SESSION['error_message'])) {
         echo "<p style='color: red;'>" . $_SESSION['error_message'] . "</p>";
