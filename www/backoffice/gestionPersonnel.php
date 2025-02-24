@@ -8,8 +8,14 @@ if (!isset($_SESSION['utilisateur'])) {
     exit;
 }
 
-// Récupérer la liste des employés
-$requete_personnels = $pdo->query("SELECT id_personnel, nom, prenom, poste, login FROM personnel");
+// Gestion de la recherche
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$requete_personnels = $pdo->prepare("
+    SELECT id_personnel, nom, prenom, poste, login 
+    FROM personnel 
+    WHERE nom LIKE ? OR prenom LIKE ? OR poste LIKE ? OR login LIKE ?
+");
+$requete_personnels->execute(["%$search%", "%$search%", "%$search%", "%$search%"]);
 $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
 
 // Récupérer les animaux pour chaque employé avec leur espèce
@@ -36,10 +42,9 @@ foreach ($personnels as $personnel) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion du Personnel</title>
 
-    <!-- Bootstrap & AdminLTE CSS -->
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
     <!-- Styles personnalisés -->
     <style>
@@ -57,6 +62,17 @@ foreach ($personnels as $personnel) {
         .navbar-custom {
             background-color: rgb(72, 149, 182);
             color: white;
+        }
+
+        .animal-details {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .animal-details table {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -77,15 +93,29 @@ foreach ($personnels as $personnel) {
 
             <section class="content">
                 <div class="container-fluid">
+                    <!-- Tableau -->
                     <div class="row justify-content-center">
                         <div class="col-md-10">
                             <div class="card shadow">
                                 <div class="card-header bg-primary text-white">
-                                    <h3 class="card-title">Liste des Employés</h3>
+                                    <h2 class="card-title ">Liste des Employés</h2>
+                                    <!-- Ajouter un formulaire de recherche avant le tableau -->
+                                    <div class="container-fluid mb-1">
+                                        <div class="d-flex justify-content-end">
+                                            <form method="GET" class="row g-3">
+                                                <div class="col-auto">
+                                                    <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars($search) ?>">
+                                                </div>
+                                                <div class="col-auto">
+                                                    <button type="submit" class="btn btn-primary">Rechercher</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table id="userTable" class="table table-sm table-bordered table-striped">
+                                        <table class="table table-sm table-bordered table-striped">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th>Nom</th>
@@ -103,15 +133,16 @@ foreach ($personnels as $personnel) {
                                                         <td><?= htmlspecialchars($personnel['poste']) ?></td>
                                                         <td><?= htmlspecialchars($personnel['login']) ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>">
+                                                            <button class="btn btn-sm btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>" aria-expanded="false" aria-controls="animaux-<?= $personnel['id_personnel'] ?>">
                                                                 Voir les animaux
                                                             </button>
                                                         </td>
                                                     </tr>
-                                                    <tr>
-                                                        <td colspan="5" class="p-0">
-                                                            <div id="animaux-<?= $personnel['id_personnel'] ?>" class="collapse">
-                                                                <div class="p-3">
+                                                    <!-- Section des détails des animaux -->
+                                                    <tr class="collapse" id="animaux-<?= $personnel['id_personnel'] ?>">
+                                                        <td colspan="5">
+                                                            <div class="animal-details">
+                                                                <?php if (isset($animaux_par_personnel[$personnel['id_personnel']]) && count($animaux_par_personnel[$personnel['id_personnel']]) > 0) : ?>
                                                                     <table class="table table-sm table-bordered">
                                                                         <thead>
                                                                             <tr>
@@ -126,27 +157,23 @@ foreach ($personnels as $personnel) {
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
-                                                                            <?php if (isset($animaux_par_personnel[$personnel['id_personnel']]) && count($animaux_par_personnel[$personnel['id_personnel']]) > 0) : ?>
-                                                                                <?php foreach ($animaux_par_personnel[$personnel['id_personnel']] as $animal) : ?>
-                                                                                    <tr>
-                                                                                        <td><?= htmlspecialchars($animal['nom']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['genre']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['numero']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['pays']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['date_naissance']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['date_arrivee']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['espece']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['historique']) ?></td>
-                                                                                    </tr>
-                                                                                <?php endforeach; ?>
-                                                                            <?php else : ?>
+                                                                            <?php foreach ($animaux_par_personnel[$personnel['id_personnel']] as $animal) : ?>
                                                                                 <tr>
-                                                                                    <td colspan="8" class="text-center text-muted">Pas d'animaux gérés par cet employé.</td>
+                                                                                    <td><?= htmlspecialchars($animal['nom']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['genre']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['numero']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['pays']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['date_naissance']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['date_arrivee']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['espece']) ?></td>
+                                                                                    <td><?= htmlspecialchars($animal['historique']) ?></td>
                                                                                 </tr>
-                                                                            <?php endif; ?>
+                                                                            <?php endforeach; ?>
                                                                         </tbody>
                                                                     </table>
-                                                                </div>
+                                                                <?php else : ?>
+                                                                    <p class="text-muted">Pas d'animaux gérés par cet employé.</p>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -162,20 +189,9 @@ foreach ($personnels as $personnel) {
             </section>
         </div>
     </div>
-    <!-- JS -->
+
+    <!-- Bootstrap JS (minimum requis pour le collapse) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#userTable').DataTable({
-                paging: false, // Désactive la pagination pour afficher tout le personnel
-                searching: true, // Active la recherche
-                info: false // Masque le texte "Showing X of Y entries"
-            });
-        });
-    </script>
 </body>
 
 </html>
