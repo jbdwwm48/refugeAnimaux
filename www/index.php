@@ -27,7 +27,7 @@ function getCouleurEspece($nom_espece, $couleurs_especes)
 // Requête pour récupérer les animaux, avec ou sans filtre selon la sélection de l'espèce
 $sql = "SELECT a.id_animal, a.nom, a.genre, a.historique, 
                 COALESCE(a.image, 'https://via.placeholder.com/150') AS image, 
-                a.date_naissance, e.nom AS espece 
+                a.date_naissance, GROUP_CONCAT(e.nom ORDER BY e.nom ASC) AS espece 
         FROM animal a
         LEFT JOIN animal_espece ae ON a.id_animal = ae.id_animal
         LEFT JOIN espece e ON ae.id_espece = e.id_espece";
@@ -35,7 +35,8 @@ $sql = "SELECT a.id_animal, a.nom, a.genre, a.historique,
 if ($id_espece) {
     $sql .= " WHERE e.id_espece = :id_espece";
 }
-$sql .= " LIMIT 50"; // Limite pour éviter surcharge
+
+$sql .= " GROUP BY a.id_animal LIMIT 50"; // Groupe par id_animal pour éviter les doublons
 
 $requete_animaux = $pdo->prepare($sql);
 
