@@ -4,9 +4,8 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 if (isset($_SESSION['utilisateur'])) {
-    echo "<p>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
-    echo '<a href="../backoffice/dashboard.php"><button>Dashboard</button></a>';
-    echo '<a href="../auth/logout.php"><button>Déconnexion</button></a>';
+    echo "<p class='text-white fs-5'>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
+    echo '<div> <a href="../backoffice/dashboard.php"><button class="rounded">Dashboard</button></a> <a href="../auth/logout.php"><button class="rounded">Déconnexion</button></a><div>';
 } else {
     if (isset($_SESSION['error_message'])) {
         echo "<p style='color: red;'>" . $_SESSION['error_message'] . "</p>";
@@ -14,7 +13,7 @@ if (isset($_SESSION['utilisateur'])) {
     }
 ?>
     <form class="d-flex flex-column flex-md-row flex-wrap justify-content-md-center gap-2" action="auth/login.php" method="POST">
-        <input placeholder="Login"  class="rounded" type="text" id="login" name="login" required>
+        <input placeholder="Login" class="rounded" type="text" id="login" name="login" required>
         <input placeholder="Password" class="rounded" type="password" id="mot_de_passe" name="mot_de_passe" required>
         <button type="submit" type="button" class="btn btn-success btn-rounded">Se connecter</button>
     </form>
