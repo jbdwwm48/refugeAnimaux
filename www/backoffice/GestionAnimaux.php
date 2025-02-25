@@ -14,22 +14,27 @@ $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'nom';
 $sort_order = isset($_GET['order']) && $_GET['order'] === 'desc' ? 'DESC' : 'ASC';
 
 $requete_animaux = $pdo->prepare("
-    SELECT a.id_animal, a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.historique, a.image, c.numero AS cage, e.nom AS espece
+    SELECT a.id_animal, a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.historique, a.image, c.numero AS cage, GROUP_CONCAT(e.nom SEPARATOR ', ') AS espece
     FROM animal a
     LEFT JOIN cage c ON a.id_cage = c.id_cage
     INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal
     INNER JOIN espece e ON ae.id_espece = e.id_espece
     WHERE a.nom LIKE ? OR a.genre LIKE ? OR a.numero LIKE ? OR a.pays LIKE ? OR e.nom LIKE ?
+    GROUP BY a.id_animal
     ORDER BY $sort_column $sort_order
 ");
 $requete_animaux->execute(["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
 $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
 
-// Fonction pour générer les liens de tri
+// Fonction pour générer les liens de tri avec flèches
 function getSortLink($column, $current_sort, $current_order)
 {
     $new_order = ($current_sort === $column && $current_order === 'ASC') ? 'desc' : 'asc';
-    return "?sort=$column&order=$new_order&search=" . htmlspecialchars($_GET['search'] ?? '');
+    $arrow = '';
+    if ($current_sort === $column) {
+        $arrow = $current_order === 'ASC' ? ' ↑' : ' ↓';
+    }
+    return "?sort=$column&order=$new_order&search=" . urlencode($_GET['search'] ?? '');
 }
 ?>
 
@@ -43,10 +48,30 @@ function getSortLink($column, $current_sort, $current_order)
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
 
     <!-- Styles personnalisés -->
     <style>
+        /* Style par défaut des TH */
+        .table-dark th {
+            background-color: #6c757d;
+            /* Gris Bootstrap */
+            color: white;
+        }
+
+        /* Style des TH lorsqu'ils sont utilisés pour trier */
+        .table-dark th.sorted {
+            background-color: black;
+            /* Noir */
+        }
+
+        /* Style des icônes de tri */
+        .sort-icon {
+            margin-left: 5px;
+            font-size: 0.8em;
+        }
+
         .table-responsive {
             max-width: 100%;
             margin: auto;
@@ -116,6 +141,7 @@ function getSortLink($column, $current_sort, $current_order)
     <div class="wrapper">
         <!-- Sidebar -->
         <?php include('./sidebar.php') ?>
+
         <div class="content-wrapper">
             <div class="content-header">
                 <div class="container-fluid">
@@ -150,11 +176,66 @@ function getSortLink($column, $current_sort, $current_order)
                                         <table class="table table-sm table-bordered table-striped">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th><a href="<?= getSortLink('nom', $sort_column, $sort_order) ?>" class="text-white">Nom</a></th>
-                                                    <th><a href="<?= getSortLink('genre', $sort_column, $sort_order) ?>" class="text-white">Genre</a></th>
-                                                    <th><a href="<?= getSortLink('numero', $sort_column, $sort_order) ?>" class="text-white">Numéro</a></th>
-                                                    <th><a href="<?= getSortLink('cage', $sort_column, $sort_order) ?>" class="text-white">Cage</a></th>
-                                                    <th><a href="<?= getSortLink('espece', $sort_column, $sort_order) ?>" class="text-white">Espèce</a></th>
+                                                    <th class="<?= $sort_column === 'nom' ? 'sorted' : '' ?>">
+                                                        <a href="<?= getSortLink('nom', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
+                                                            Nom
+                                                            <span class="sort-icon">
+                                                                <?php if ($sort_column === 'nom') : ?>
+                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
+                                                                <?php else : ?>
+                                                                    ↕
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </a>
+                                                    </th>
+                                                    <th class="<?= $sort_column === 'genre' ? 'sorted' : '' ?>">
+                                                        <a href="<?= getSortLink('genre', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
+                                                            Genre
+                                                            <span class="sort-icon">
+                                                                <?php if ($sort_column === 'genre') : ?>
+                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
+                                                                <?php else : ?>
+                                                                    ↕
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </a>
+                                                    </th>
+                                                    <th class="<?= $sort_column === 'numero' ? 'sorted' : '' ?>">
+                                                        <a href="<?= getSortLink('numero', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
+                                                            Numéro
+                                                            <span class="sort-icon">
+                                                                <?php if ($sort_column === 'numero') : ?>
+                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
+                                                                <?php else : ?>
+                                                                    ↕
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </a>
+                                                    </th>
+                                                    <th class="<?= $sort_column === 'cage' ? 'sorted' : '' ?>">
+                                                        <a href="<?= getSortLink('cage', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
+                                                            Cage
+                                                            <span class="sort-icon">
+                                                                <?php if ($sort_column === 'cage') : ?>
+                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
+                                                                <?php else : ?>
+                                                                    ↕
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </a>
+                                                    </th>
+                                                    <th class="<?= $sort_column === 'espece' ? 'sorted' : '' ?>">
+                                                        <a href="<?= getSortLink('espece', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
+                                                            Espèce
+                                                            <span class="sort-icon">
+                                                                <?php if ($sort_column === 'espece') : ?>
+                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
+                                                                <?php else : ?>
+                                                                    ↕
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </a>
+                                                    </th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
@@ -194,6 +275,8 @@ function getSortLink($column, $current_sort, $current_order)
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AdminLTE JS -->
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
     <!-- JavaScript pour gérer la lightbox -->
     <script>
         document.querySelectorAll('.show-animal').forEach(button => {
