@@ -8,32 +8,115 @@ if (!isset($_SESSION['utilisateur'])) {
     exit;
 }
 
-// Gestion de la recherche
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$requete_personnels = $pdo->prepare("
-    SELECT id_personnel, nom, prenom, poste, login 
-    FROM personnel 
-    WHERE nom LIKE ? OR prenom LIKE ? OR poste LIKE ? OR login LIKE ?
-");
-$requete_personnels->execute(["%$search%", "%$search%", "%$search%", "%$search%"]);
-$personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
+// Récupérer les informations de l'utilisateur
+$role_utilisateur = strtolower($_SESSION['utilisateur']['poste']); // Convertir en minuscules
+$id_utilisateur = $_SESSION['utilisateur']['id_personnel'];
+$prenom_utilisateur = $_SESSION['utilisateur']['prenom'];
+$nom_utilisateur = $_SESSION['utilisateur']['nom'];
 
-// Récupérer les animaux pour chaque employé avec leur espèce
-$animaux_par_personnel = [];
-foreach ($personnels as $personnel) {
-    $id_personnel = $personnel['id_personnel'];
-    $requete_animaux = $pdo->prepare("
-        SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
-        FROM animal a 
-        INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
-        INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
-        INNER JOIN espece e ON ae.id_espece = e.id_espece 
-        WHERE s.id_personnel = ?
-    ");
-    $requete_animaux->execute([$id_personnel]);
-    $animaux_par_personnel[$id_personnel] = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
+// Fonction pour filtrer les données en fonction du rôle
+function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
+{
+    if ($role_utilisateur === 'soigneur') {
+        // Le soigneur ne voit que ses propres informations
+        $requete_personnels = $pdo->prepare("
+            SELECT id_personnel, nom, poste, login 
+            FROM personnel 
+            WHERE id_personnel = :id_utilisateur
+        ");
+        $requete_personnels->bindValue(':id_utilisateur', $id_utilisateur, PDO::PARAM_INT);
+        $requete_personnels->execute();
+        $personnel = $requete_personnels->fetch(PDO::FETCH_ASSOC);
+
+        if (!$personnel) {
+            return [];
+        }
+
+        // Récupérer les animaux associés au soigneur
+        $id_personnel = $personnel['id_personnel'];
+        $requete_animaux = $pdo->prepare("
+            SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
+            FROM animal a 
+            INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
+            INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
+            INNER JOIN espece e ON ae.id_espece = e.id_espece 
+            WHERE s.id_personnel = :id_personnel
+        ");
+        $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
+        $requete_animaux->execute();
+        $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
+
+        $personnel['animaux'] = $animaux;
+        return [$personnel]; // Retourner un tableau contenant le soigneur
+    } elseif ($role_utilisateur === 'cadre') {
+        // Le cadre voit tous les soigneurs et leurs animaux
+        $requete_personnels = $pdo->prepare("
+            SELECT id_personnel, nom, poste, login 
+            FROM personnel 
+            WHERE poste = 'soigneur'
+        ");
+        $requete_personnels->execute();
+        $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
+
+        // Pour chaque soigneur, récupérer les animaux associés
+        foreach ($personnels as &$personnel) {
+            $id_personnel = $personnel['id_personnel'];
+            $requete_animaux = $pdo->prepare("
+                SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
+                FROM animal a 
+                INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
+                INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
+                INNER JOIN espece e ON ae.id_espece = e.id_espece 
+                WHERE s.id_personnel = :id_personnel
+            ");
+            $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
+            $requete_animaux->execute();
+            $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
+
+            $personnel['animaux'] = $animaux;
+        }
+
+        return $personnels; // Retourner un tableau contenant tous les soigneurs et leurs animaux
+    } elseif ($role_utilisateur === 'administratif') {
+        // L'administratif voit tout le personnel
+        $requete_personnels = $pdo->prepare("
+            SELECT id_personnel, nom, poste, login 
+            FROM personnel
+        ");
+        $requete_personnels->execute();
+        $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
+
+        // Pour chaque soigneur, récupérer les animaux associés
+        foreach ($personnels as &$personnel) {
+            if ($personnel['poste'] === 'soigneur') {
+                $id_personnel = $personnel['id_personnel'];
+                $requete_animaux = $pdo->prepare("
+                    SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
+                    FROM animal a 
+                    INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
+                    INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
+                    INNER JOIN espece e ON ae.id_espece = e.id_espece 
+                    WHERE s.id_personnel = :id_personnel
+                ");
+                $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
+                $requete_animaux->execute();
+                $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
+
+                $personnel['animaux'] = $animaux;
+            }
+        }
+
+        return $personnels; // Retourner un tableau contenant tout le personnel
+    } else {
+        // Si le rôle n'est pas reconnu, retourner un tableau vide
+        return [];
+    }
 }
+
+// Filtrer les données en fonction du rôle
+$personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -44,6 +127,7 @@ foreach ($personnels as $personnel) {
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
 
     <!-- Styles personnalisés -->
@@ -74,6 +158,10 @@ foreach ($personnels as $personnel) {
         .animal-details table {
             margin-bottom: 0;
         }
+
+        .collapse-toggle {
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -84,6 +172,7 @@ foreach ($personnels as $personnel) {
     <div class="wrapper">
         <!-- Sidebar -->
         <?php include('./sidebar.php') ?>
+
         <div class="content-wrapper">
             <div class="content-header">
                 <div class="container-fluid">
@@ -98,20 +187,7 @@ foreach ($personnels as $personnel) {
                         <div class="col-md-10">
                             <div class="card shadow">
                                 <div class="card-header bg-primary text-white">
-                                    <h2 class="card-title ">Liste des Employés</h2>
-                                    <!-- Ajouter un formulaire de recherche avant le tableau -->
-                                    <div class="container-fluid mb-1">
-                                        <div class="d-flex justify-content-end">
-                                            <form method="GET" class="row g-3">
-                                                <div class="col-auto">
-                                                    <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars($search) ?>">
-                                                </div>
-                                                <div class="col-auto">
-                                                    <button type="submit" class="btn btn-primary">Rechercher</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
+                                    <h2 class="card-title">Liste du Personnel</h2>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
@@ -119,65 +195,77 @@ foreach ($personnels as $personnel) {
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th>Nom</th>
-                                                    <th>Prénom</th>
                                                     <th>Poste</th>
                                                     <th>Login</th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach ($personnels as $personnel) : ?>
+                                                <?php if (empty($personnels)) : ?>
                                                     <tr>
-                                                        <td><?= htmlspecialchars($personnel['nom']) ?></td>
-                                                        <td><?= htmlspecialchars($personnel['prenom']) ?></td>
-                                                        <td><?= htmlspecialchars($personnel['poste']) ?></td>
-                                                        <td><?= htmlspecialchars($personnel['login']) ?></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>" aria-expanded="false" aria-controls="animaux-<?= $personnel['id_personnel'] ?>">
-                                                                Voir les animaux
-                                                            </button>
-                                                        </td>
+                                                        <td colspan="4" class="text-center">Aucun employé trouvé.</td>
                                                     </tr>
-                                                    <!-- Section des détails des animaux -->
-                                                    <tr class="collapse" id="animaux-<?= $personnel['id_personnel'] ?>">
-                                                        <td colspan="5">
-                                                            <div class="animal-details">
-                                                                <?php if (isset($animaux_par_personnel[$personnel['id_personnel']]) && count($animaux_par_personnel[$personnel['id_personnel']]) > 0) : ?>
-                                                                    <table class="table table-sm table-bordered">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th>Nom</th>
-                                                                                <th>Genre</th>
-                                                                                <th>Numéro</th>
-                                                                                <th>Pays</th>
-                                                                                <th>Date de naissance</th>
-                                                                                <th>Date d'arrivée</th>
-                                                                                <th>Espèce</th>
-                                                                                <th>Historique</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            <?php foreach ($animaux_par_personnel[$personnel['id_personnel']] as $animal) : ?>
-                                                                                <tr>
-                                                                                    <td><?= htmlspecialchars($animal['nom']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['genre']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['numero']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['pays']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['date_naissance']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['date_arrivee']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['espece']) ?></td>
-                                                                                    <td><?= htmlspecialchars($animal['historique']) ?></td>
-                                                                                </tr>
-                                                                            <?php endforeach; ?>
-                                                                        </tbody>
-                                                                    </table>
-                                                                <?php else : ?>
-                                                                    <p class="text-muted">Pas d'animaux gérés par cet employé.</p>
+                                                <?php else : ?>
+                                                    <?php foreach ($personnels as $personnel) : ?>
+                                                        <tr>
+                                                            <td><?= htmlspecialchars($personnel['nom']) ?></td>
+                                                            <td><?= htmlspecialchars($personnel['poste']) ?></td>
+                                                            <td><?= htmlspecialchars($personnel['login']) ?></td>
+                                                            <td>
+                                                                <?php if ($role_utilisateur === 'administratif') : ?>
+                                                                    <button class="btn btn-sm btn-warning">Modifier</button>
+                                                                    <button class="btn btn-sm btn-danger">Supprimer</button>
                                                                 <?php endif; ?>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
+                                                                <?php if (($role_utilisateur === 'cadre' || $role_utilisateur === 'administratif') && $personnel['poste'] === 'soigneur' && !empty($personnel['animaux'])) : ?>
+                                                                    <button class="btn btn-sm btn-info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>">
+                                                                        Voir les animaux
+                                                                    </button>
+                                                                <?php elseif ($role_utilisateur === 'soigneur' && !empty($personnel['animaux'])) : ?>
+                                                                    <button class="btn btn-sm btn-info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>">
+                                                                        Voir les animaux
+                                                                    </button>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                        </tr>
+                                                        <!-- Afficher les animaux sous chaque soigneur -->
+                                                        <?php if ((($role_utilisateur === 'cadre' || $role_utilisateur === 'administratif') && $personnel['poste'] === 'soigneur' && !empty($personnel['animaux'])) || ($role_utilisateur === 'soigneur' && !empty($personnel['animaux']))) : ?>
+                                                            <tr class="collapse" id="animaux-<?= $personnel['id_personnel'] ?>">
+                                                                <td colspan="4">
+                                                                    <div class="animal-details">
+                                                                        <table class="table table-sm table-bordered">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Nom</th>
+                                                                                    <th>Genre</th>
+                                                                                    <th>Numéro</th>
+                                                                                    <th>Pays</th>
+                                                                                    <th>Date de naissance</th>
+                                                                                    <th>Date d'arrivée</th>
+                                                                                    <th>Espèce</th>
+                                                                                    <th>Historique</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <?php foreach ($personnel['animaux'] as $animal) : ?>
+                                                                                    <tr>
+                                                                                        <td><?= htmlspecialchars($animal['nom']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['genre']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['numero']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['pays']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['date_naissance']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['date_arrivee']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['espece']) ?></td>
+                                                                                        <td><?= htmlspecialchars($animal['historique']) ?></td>
+                                                                                    </tr>
+                                                                                <?php endforeach; ?>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                             </tbody>
                                         </table>
                                     </div>
@@ -190,7 +278,7 @@ foreach ($personnels as $personnel) {
         </div>
     </div>
 
-    <!-- Bootstrap JS (minimum requis pour le collapse) -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 

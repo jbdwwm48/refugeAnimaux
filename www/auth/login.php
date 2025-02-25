@@ -1,29 +1,48 @@
 <?php
-session_start();
-include 'initDb.php';
+// Démarrer la session
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
+// Inclure le fichier d'initialisation de la base de données
+require 'initDb.php';
+
+// Vérifier si la requête est de type POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Récupérer les données du formulaire
     $login = $_POST['login'];
     $mot_de_passe = $_POST['mot_de_passe'];
 
-    try {
-        $stmt = $pdo->prepare('SELECT * FROM personnel WHERE login = ?');
-        $stmt->execute([$login]);
-        $user = $stmt->fetch();
+    // Vérifier les identifiants dans la base de données
+    $requete = $pdo->prepare("SELECT id_personnel, nom, prenom, poste, login, mot_de_passe FROM personnel WHERE login = ?");
+    $requete->execute([$login]);
+    $utilisateur = $requete->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify($mot_de_passe, $user['mot_de_passe'])) {
-            $_SESSION['utilisateur'] = $user['login'];
-            unset($_SESSION['error_message']); // Supprimer le message d'erreur en cas de connexion réussie
-            header('Location: ../index.php'); // Rediriger vers la page d'accueil
-            exit;
-        } else {
-            $_SESSION['error_message'] = 'Nom d\'utilisateur ou mot de passe incorrect.';
-            header('Location: ../index.php'); // Rester sur la page actuelle
-            exit;
-        }
-    } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Erreur de connexion : " . $e->getMessage();
-        header('Location: ../index.php'); // Rester sur la page actuelle
+    // Si l'utilisateur existe et que le mot de passe est correct
+    if ($utilisateur && password_verify($mot_de_passe, $utilisateur['mot_de_passe'])) {
+        // Authentification réussie : initialiser la session
+        $_SESSION['utilisateur'] = [
+            'id_personnel' => $utilisateur['id_personnel'], // ID de l'utilisateur
+            'nom' => $utilisateur['nom'], // Nom de l'utilisateur
+            'prenom' => $utilisateur['prenom'], // Prénom de l'utilisateur
+            'poste' => strtolower($utilisateur['poste']), // Poste de l'utilisateur (converti en minuscules)
+            'login' => $utilisateur['login'] // Login de l'utilisateur
+        ];
+
+        // Rediriger vers le tableau de bord
+        header('Location: ../backoffice/dashboard.php');
+        exit;
+    } else {
+        // Authentification échouée : définir un message d'erreur
+        $_SESSION['error_message'] = "Identifiant ou mot de passe incorrect.";
+
+        // Rediriger vers le formulaire de connexion
+        header('Location: formulaire.php');
         exit;
     }
 }
+
+// Debug : Afficher le contenu de la session (à des fins de débogage, à retirer en production)
+echo "<pre>";
+print_r($_SESSION);
+echo "</pre>";
