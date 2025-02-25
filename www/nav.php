@@ -1,11 +1,11 @@
-<nav class="navbar navbar-expand-lg navbar-custom px- ">
+<nav class="navbar navbar-expand-lg navbar-custom px-4">
     <div class="container-fluid ">
         <img src="https://mdbootstrap.com/img/Photos/new-templates/animal-shelter/logo.png" height="70" alt="logo du refuge" loading="lazy" />
-        <button class="navbar-toggler bg-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+        <button class="navbar-toggler " type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
         aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse justify-content-between" id="navbarNav">
+        <div class="collapse navbar-collapse justify-content-between px-4" id="navbarNav">
             <div>
                 <ul class="navbar-nav gap-4">
                     <li class="nav-item ">

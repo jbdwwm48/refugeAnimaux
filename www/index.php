@@ -1,19 +1,41 @@
 <?php
-session_start(); 
+session_start();
 require './auth/initDb.php';
 
-// Vérifier si un paramètre de filtre est passé
-$id_espece = isset($_GET['id_espece']) && !empty($_GET['id_espece']) ? (int)$_GET['id_espece'] : null;
+// Vérifier si un paramètre de filtre est passé en sécurisant l'entrée
+$id_espece = filter_input(INPUT_GET, 'id_espece', FILTER_VALIDATE_INT);
+
+// Définition des couleurs par espèce
+$couleurs_especes = [
+    'Chien' => '#335c67',
+    'Chat' => '#FF9800',
+    'Cheval' => '#A0522D',
+    'Girafe' => '#FFD54F',
+    'Éléphant' => '#9E9E9E',
+    'Serpent' => '#2E7D32',
+    'Crocodile' => '#9C27B0',
+    'Loup' => '#344f64',
+    'Âne' => '#5d5737'
+];
+
+// Fonction pour obtenir la couleur selon l'espèce (avec une couleur par défaut)
+function getCouleurEspece($nom_espece, $couleurs_especes)
+{
+    return $couleurs_especes[$nom_espece] ?? '#000'; // Noir par défaut si l'espèce n'est pas définie
+}
 
 // Requête pour récupérer les animaux, avec ou sans filtre selon la sélection de l'espèce
-$sql = "SELECT a.id_animal, a.nom, a.genre, a.historique, a.image, a.date_naissance, e.nom AS espece 
+$sql = "SELECT a.id_animal, a.nom, a.genre, a.historique, 
+                COALESCE(a.image, 'https://via.placeholder.com/150') AS image, 
+                a.date_naissance, e.nom AS espece 
         FROM animal a
-        INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal
-        INNER JOIN espece e ON ae.id_espece = e.id_espece";
+        LEFT JOIN animal_espece ae ON a.id_animal = ae.id_animal
+        LEFT JOIN espece e ON ae.id_espece = e.id_espece";
 
 if ($id_espece) {
-    $sql .= " WHERE e.id_espece = :id_espece"; // Ajouter un filtre par espèce
+    $sql .= " WHERE e.id_espece = :id_espece";
 }
+$sql .= " LIMIT 50"; // Limite pour éviter surcharge
 
 $requete_animaux = $pdo->prepare($sql);
 
@@ -36,18 +58,15 @@ $especes = $requete_especes->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Refuge des Compagnons Palet</title>
-    <!-- Bootstrap CSS -->
     <link href="./assets/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons CSS -->
     <link href="./assets/css/bootstrap-icons.css" rel="stylesheet">
     <style>
         .navbar-custom {
-            background-color:rgb(110, 183, 154);
-            /* Vert */
+            background-color: rgb(110, 183, 154);
         }
 
         .footer-custom {
-            background-color:rgb(110, 183, 154);
+            background-color: rgb(110, 183, 154);
             color: white;
         }
 
@@ -62,62 +81,57 @@ $especes = $requete_especes->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body>
-    <!-- Header avec Nav -->
-    <?php
-    include('./nav.php')
-    ?>
-    <!-- Introduction -->
+    <?php include('./nav.php'); ?>
+
     <div class="container mt-4">
-        <div class="row">
-            <div class="col">
-                <h1>Bienvenue au Refuge des Compagnons Palet</h1>
-                <p class="p-4">Niché dans le paisible Bourg Palette, notre refuge pour animaux est un havre de paix et de bonheur pour nos amis à quatre pattes. Nous accueillons des animaux de toutes tailles et origines, en leur offrant un environnement sécurisé et affectueux. Refuge des Compagnons Palet est dédié à créer un foyer temporaire chaleureux, où chaque animal peut se détendre, jouer et trouver une famille aimante. Avec des espaces verts luxuriants et des activités stimulantes, notre refuge est l'endroit idéal pour un nouveau départ plein d'amour et de joie pour nos compagnons. 🐾</p>
-            </div>
-        </div>
+        <h1>Bienvenue au Refuge des Compagnons Palet</h1>
+        <p class="p-4">Notre refuge accueille des animaux en quête d'un nouveau foyer...</p>
     </div>
 
-    <!-- Formulaire pour filtrer par espèce -->
-    <div class="row w-50 m-auto">
+    <div class="row w-50 m-auto my-4">
         <div class="col">
-            <form method="GET" action="">
+            <form method="GET" action="" class="d-flex gap-2 align-items-center">
                 <select class="form-select" name="id_espece" aria-label="Filtrer par espèce">
                     <option selected value="">Choisissez une espèce</option>
                     <?php foreach ($especes as $espece) : ?>
-                        <option value="<?= $espece['id_espece'] ?>" <?= isset($_GET['id_espece']) && $_GET['id_espece'] == $espece['id_espece'] ? 'selected' : '' ?>>
+                        <option value="<?= $espece['id_espece'] ?>" <?= ($id_espece == $espece['id_espece']) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($espece['nom']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit" class="btn btn-secondary mt-2">Filtrer</button>
+                <button type="submit" class="btn btn-primary" aria-label="Appliquer le filtre">Filtrer</button>
             </form>
         </div>
     </div>
 
-
     <main>
-        <<sectio class="d-flex justify-content-center flex-wrap m-auto gap-5">
-            <?php foreach ($animaux as $animal) : ?>
-                <div class="card shadow border-2 border-success" style="width: 18rem;">
-                    <img src="<?= htmlspecialchars($animal['image'] ?? 'https://via.placeholder.com/150') ?>" class="card-img-top" alt="<?= htmlspecialchars($animal['nom']) ?>">
-                    <div class="card-body">
-                        <h5 class="card-title"><?= htmlspecialchars($animal['nom']) ?></h5>
-                        <p class="card-text"><?= htmlspecialchars($animal['historique']) ?></p>
-                        <ul class="list-group list-group-flush">
-                        <li class="list-group-item">Espèce : <?= htmlspecialchars($animal['espece'] ?? 'Non assignée') ?></li>
-                            <li class="list-group-item">Genre : <?= htmlspecialchars($animal['genre']) ?></li>
-                            <li class="list-group-item">Date de naissance :
-                                <?= isset($animal['date_naissance']) ? htmlspecialchars((new DateTime($animal['date_naissance']))->format('d/m/Y')) : 'Non renseignée' ?>
-                            </li>
-                        </ul>
+        <section class="d-flex justify-content-center flex-wrap m-auto gap-5">
+            <?php if (empty($animaux)) : ?>
+                <p class="text-center mt-4">Aucun animal trouvé pour cette espèce.</p>
+            <?php else : ?>
+                <?php foreach ($animaux as $animal) : ?>
+                    <?php $couleur = getCouleurEspece($animal['espece'], $couleurs_especes); ?>
+                    <div class="card shadow border-2" style="width: 18rem; border-color: <?= $couleur ?>;">
+                        <img src="<?= htmlspecialchars($animal['image']) ?>" class="card-img-top" alt="<?= htmlspecialchars($animal['nom']) ?>" loading="lazy">
+                        <div class="card-body">
+                            <h5 class="card-title"><?= htmlspecialchars($animal['nom']) ?></h5>
+                            <p class="card-text"><?= htmlspecialchars($animal['historique']) ?></p>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item" style="background-color: <?= $couleur ?>; color: white; font-weight: bold;">
+                                    Espèce : <?= htmlspecialchars($animal['espece'] ?? 'Non assignée') ?>
+                                </li>
+                                <li class="list-group-item">Genre : <?= htmlspecialchars($animal['genre']) ?></li>
+                                <li class="list-group-item">Date de naissance :
+                                    <?= isset($animal['date_naissance']) ? htmlspecialchars((new DateTime($animal['date_naissance']))->format('d/m/Y')) : 'Non renseignée' ?>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-            </section>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </section>
     </main>
-    <!-- Footer -->
-    <?php
-    include_once('./footer.php')
-    ?>
+    <?php include_once('./footer.php'); ?>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
 </body>
 
