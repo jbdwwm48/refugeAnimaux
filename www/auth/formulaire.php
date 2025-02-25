@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 if (isset($_SESSION['utilisateur'])) {
     echo "<p class='text-white fs-5'>Bienvenue " . htmlspecialchars($_SESSION['utilisateur']) . " !</p>";
-    echo '<div> <a href="../backoffice/dashboard.php"><button class="rounded">Dashboard</button></a> <a href="../auth/logout.php"><button class="rounded">Déconnexion</button></a><div>';
+    echo '<div> <a href="../backoffice/dashboard.php"><button class="btn btn-primary btn-rounded text-white">Dashboard</button></a> <a href="../auth/logout.php"><button class="btn btn-danger btn-rounded">Déconnexion</button></a><div>';
 } else {
     if (isset($_SESSION['error_message'])) {
         echo "<p style='color: red;'>" . $_SESSION['error_message'] . "</p>";
