@@ -2,50 +2,83 @@
 session_start();
 require '../auth/initDb.php';
 
-$utilisateur_connecte = isset($_SESSION['id_personnel']);
-
-$requete_cages = $pdo->query("SELECT c.id_cage, c.numero, COUNT(a.id_animal) AS occupation FROM cage c LEFT JOIN animal a ON c.id_cage = a.id_cage GROUP BY c.id_cage");
-$cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
-
-$personnels = [];
-if ($utilisateur_connecte) {
-    $requete_personnels = $pdo->query("SELECT id_personnel, nom, prenom, poste FROM personnel");
-    $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
+// Vérifier si l'utilisateur est connecté
+if (!isset($_SESSION['utilisateur'])) {
+    header('Location: ../index.php');
+    exit;
 }
+
+// Récupérer les cages avec les animaux associés
+$requete_cages = $pdo->query("
+    SELECT c.id_cage, c.numero, c.allee, c.salle, a.id_animal, a.nom AS nom_animal, e.nom AS espece 
+    FROM cage c 
+    LEFT JOIN animal a ON c.id_cage = a.id_cage 
+    LEFT JOIN animal_espece ae ON a.id_animal = ae.id_animal 
+    LEFT JOIN espece e ON ae.id_espece = e.id_espece
+");
+$cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backoffice Cages</title>
+    <title>Gestion des Cages</title>
 
-    <!-- Bootstrap & AdminLTE CSS -->
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
-    <!-- Styles personnalisés-->
+    <!-- Styles personnalisés -->
     <style>
-        .table-responsive {
-            max-width: 800px;
-            margin: auto;
+        .cage-card {
+            width: 200px;
+            height: 200px;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
         }
 
-        .table-sm td,
-        .table-sm th {
-            padding: 0.3rem;
-            font-size: 0.85rem;
+        .cage-card:hover {
+            transform: scale(1.05);
         }
 
-        .progress-bar {
-            font-size: 0.75rem;
+        .cage-card.occupied {
+            background-color: rgb(47, 197, 85);
+            /* Vert pour les cages occupées */
+        }
+
+        .cage-card.vacant {
+            background-color: rgb(25, 102, 184);
+            /* Bleu pour les cages libres */
+        }
+
+        .cage-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .cage-card h3 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .cage-card p {
+            margin: 5px 0;
+            font-size: 1rem;
         }
 
         .navbar-custom {
-            background-color: rgb(175, 150, 182);
+            background-color: rgb(72, 149, 182);
             color: white;
         }
     </style>
@@ -53,94 +86,44 @@ if ($utilisateur_connecte) {
 
 <body class="hold-transition sidebar-mini">
     <!-- Navbar -->
-    <?php
-    include('../nav.php')
-    ?>
+    <?php include('../nav.php'); ?>
+
     <div class="wrapper">
         <!-- Sidebar -->
-        <aside class="main-sidebar sidebar-dark-secondary elevation-4">
-            <a href="#" class="brand-link">
-                <span class="brand-text font-weight-light">AdminLTE</span>
-            </a>
-            <div class="sidebar">
-                <nav class="mt-2">
-                    <ul class="nav nav-pills nav-sidebar flex-column">
-                        <li class="nav-item">
-                            <a href="../backoffice/dashboard.php" class="nav-link active">
-                                <i class="nav-icon fas fa-users"></i>
-                                <p>Gestion du personnel</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="../backoffice/GestionRefuge.php" class="nav-link active">
-                                <i class="nav-icon fas fa-users"></i>
-                                <p>Liste des animaux</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="../backoffice/GestionCages.php" class="nav-link active">
-                                <i class="nav-icon fas fa-users"></i>
-                                <p>Gestion des Cages</p>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </aside>
-        <div class="container mt-2">
-            <h1 class="mb-4 text-center">Backoffice - Gestion des Animaux</h1>
-            <h2 class="my-4 text-center">Occupation des Cages</h2>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered table-striped text-center">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Numéro</th>
-                            <th>Occupation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($cages as $cage): ?>
-                            <tr>
-                                <td><?= $cage['numero'] ?></td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?= ($cage['occupation'] > 0) ? '100%' : '0%' ?>;" aria-valuenow="<?= $cage['occupation'] ?>" aria-valuemin="0" aria-valuemax="1">
-                                            <?= $cage['occupation'] > 0 ? 'Occupée' : 'Libre' ?>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+        <?php include('./sidebar.php') ?>
+        <div class="content-wrapper">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <h1 class="text-center my-4">Gestion des Cages</h1>
+                </div>
             </div>
 
-            <?php if ($utilisateur_connecte): ?>
-                <h2 class="mt-4 text-center">Liste des Employés</h2>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-striped text-center">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Nom</th>
-                                <th>Prénom</th>
-                                <th>Poste</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($personnels as $personnel): ?>
-                                <tr>
-                                    <td><?= $personnel['id_personnel'] ?></td>
-                                    <td><?= htmlspecialchars($personnel['nom']) ?></td>
-                                    <td><?= htmlspecialchars($personnel['prenom']) ?></td>
-                                    <td><?= htmlspecialchars($personnel['poste']) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Grille des cages -->
+                    <div class="cage-grid">
+                        <?php foreach ($cages as $cage): ?>
+                            <div class="cage-card <?= $cage['id_animal'] ? 'occupied' : 'vacant' ?>">
+                                <h3>Cage <?= htmlspecialchars($cage['numero']) ?></h3>
+                                <?php if ($cage['id_animal']): ?>
+                                    <p><?= htmlspecialchars($cage['nom_animal']) ?></p>
+                                    <p>ID: <?= htmlspecialchars($cage['id_animal']) ?></p>
+                                    <p>Espèce: <?= htmlspecialchars($cage['espece']) ?></p>
+                                <?php else: ?>
+                                    <p>Libre</p>
+                                <?php endif; ?>
+                                <p>Allée: <?= htmlspecialchars($cage['allee']) ?></p>
+                                <p>Salle: <?= htmlspecialchars($cage['salle']) ?></p>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            <?php endif; ?>
+            </section>
         </div>
+    </div>
+
+    <!-- Bootstrap JS (minimum requis pour le collapse) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
