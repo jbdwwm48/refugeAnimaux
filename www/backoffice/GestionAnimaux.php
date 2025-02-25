@@ -13,17 +13,50 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
 $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'nom';
 $sort_order = isset($_GET['order']) && $_GET['order'] === 'desc' ? 'DESC' : 'ASC';
 
+// Gestion de la pagination
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$perPage = 10; // Nombre d'animaux par page
+$offset = ($page - 1) * $perPage;
+
+// Sécurisation du tri pour éviter les injections SQL
+$allowed_columns = ['nom', 'genre', 'numero', 'cage', 'espece'];
+if (!in_array($sort_column, $allowed_columns)) {
+    $sort_column = 'nom'; // Valeur par défaut si la colonne n'est pas autorisée
+}
+
+// Requête pour compter le nombre total d'animaux
+$requete_count = $pdo->prepare("
+    SELECT COUNT(DISTINCT a.id_animal) AS total
+    FROM animal a
+    LEFT JOIN cage c ON a.id_cage = c.id_cage
+    INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal
+    INNER JOIN espece e ON ae.id_espece = e.id_espece
+    WHERE a.nom LIKE :search OR a.genre LIKE :search OR a.numero LIKE :search OR a.pays LIKE :search OR e.nom LIKE :search
+");
+$requete_count->execute([':search' => "%$search%"]);
+$total_animaux = $requete_count->fetch(PDO::FETCH_ASSOC)['total'];
+$total_pages = ceil($total_animaux / $perPage);
+
+// Requête pour récupérer les animaux de la page actuelle
 $requete_animaux = $pdo->prepare("
     SELECT a.id_animal, a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.historique, a.image, c.numero AS cage, GROUP_CONCAT(e.nom SEPARATOR ', ') AS espece
     FROM animal a
     LEFT JOIN cage c ON a.id_cage = c.id_cage
     INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal
     INNER JOIN espece e ON ae.id_espece = e.id_espece
-    WHERE a.nom LIKE ? OR a.genre LIKE ? OR a.numero LIKE ? OR a.pays LIKE ? OR e.nom LIKE ?
+    WHERE a.nom LIKE :search OR a.genre LIKE :search OR a.numero LIKE :search OR a.pays LIKE :search OR e.nom LIKE :search
     GROUP BY a.id_animal
     ORDER BY $sort_column $sort_order
+    LIMIT :limit OFFSET :offset
 ");
-$requete_animaux->execute(["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"]);
+// Liaison des paramètres avec PDO::PARAM_INT pour LIMIT et OFFSET
+$requete_animaux->bindValue(':search', "%$search%", PDO::PARAM_STR);
+$requete_animaux->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$requete_animaux->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+// Exécution de la requête
+$requete_animaux->execute();
+
 $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
 
 // Fonction pour générer les liens de tri avec flèches
@@ -34,7 +67,7 @@ function getSortLink($column, $current_sort, $current_order)
     if ($current_sort === $column) {
         $arrow = $current_order === 'ASC' ? ' ↑' : ' ↓';
     }
-    return "?sort=$column&order=$new_order&search=" . urlencode($_GET['search'] ?? '');
+    return "?sort=$column&order=$new_order&search=" . urlencode($_GET['search'] ?? '') . "&page=" . ($_GET['page'] ?? 1);
 }
 ?>
 
@@ -53,25 +86,6 @@ function getSortLink($column, $current_sort, $current_order)
 
     <!-- Styles personnalisés -->
     <style>
-        /* Style par défaut des TH */
-        .table-dark th {
-            background-color: #6c757d;
-            /* Gris Bootstrap */
-            color: white;
-        }
-
-        /* Style des TH lorsqu'ils sont utilisés pour trier */
-        .table-dark th.sorted {
-            background-color: black;
-            /* Noir */
-        }
-
-        /* Style des icônes de tri */
-        .sort-icon {
-            margin-left: 5px;
-            font-size: 0.8em;
-        }
-
         .table-responsive {
             max-width: 100%;
             margin: auto;
@@ -95,11 +109,6 @@ function getSortLink($column, $current_sort, $current_order)
             border-radius: 5px;
         }
 
-        .animal-details table {
-            margin-bottom: 0;
-        }
-
-        /* Style pour la lightbox */
         .lightbox {
             display: none;
             position: fixed;
@@ -167,6 +176,10 @@ function getSortLink($column, $current_sort, $current_order)
                                                 <div class="col-auto">
                                                     <button type="submit" class="btn btn-primary">Rechercher</button>
                                                 </div>
+                                                <div class="col-auto">
+                                                    <!-- Bouton pour annuler les filtres -->
+                                                    <a href="?" class="btn btn-danger">×</a>
+                                                </div>
                                             </form>
                                         </div>
                                     </div>
@@ -180,11 +193,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <a href="<?= getSortLink('nom', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
                                                             Nom
                                                             <span class="sort-icon">
-                                                                <?php if ($sort_column === 'nom') : ?>
-                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
-                                                                <?php else : ?>
-                                                                    ↕
-                                                                <?php endif; ?>
+                                                                <?= $sort_column === 'nom' ? ($sort_order === 'ASC' ? '▲' : '▼') : '↕' ?>
                                                             </span>
                                                         </a>
                                                     </th>
@@ -192,11 +201,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <a href="<?= getSortLink('genre', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
                                                             Genre
                                                             <span class="sort-icon">
-                                                                <?php if ($sort_column === 'genre') : ?>
-                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
-                                                                <?php else : ?>
-                                                                    ↕
-                                                                <?php endif; ?>
+                                                                <?= $sort_column === 'genre' ? ($sort_order === 'ASC' ? '▲' : '▼') : '↕' ?>
                                                             </span>
                                                         </a>
                                                     </th>
@@ -204,11 +209,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <a href="<?= getSortLink('numero', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
                                                             Numéro
                                                             <span class="sort-icon">
-                                                                <?php if ($sort_column === 'numero') : ?>
-                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
-                                                                <?php else : ?>
-                                                                    ↕
-                                                                <?php endif; ?>
+                                                                <?= $sort_column === 'numero' ? ($sort_order === 'ASC' ? '▲' : '▼') : '↕' ?>
                                                             </span>
                                                         </a>
                                                     </th>
@@ -216,11 +217,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <a href="<?= getSortLink('cage', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
                                                             Cage
                                                             <span class="sort-icon">
-                                                                <?php if ($sort_column === 'cage') : ?>
-                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
-                                                                <?php else : ?>
-                                                                    ↕
-                                                                <?php endif; ?>
+                                                                <?= $sort_column === 'cage' ? ($sort_order === 'ASC' ? '▲' : '▼') : '↕' ?>
                                                             </span>
                                                         </a>
                                                     </th>
@@ -228,11 +225,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <a href="<?= getSortLink('espece', $sort_column, $sort_order) ?>" class="text-white d-flex align-items-center">
                                                             Espèce
                                                             <span class="sort-icon">
-                                                                <?php if ($sort_column === 'espece') : ?>
-                                                                    <?= $sort_order === 'ASC' ? '▲' : '▼' ?>
-                                                                <?php else : ?>
-                                                                    ↕
-                                                                <?php endif; ?>
+                                                                <?= $sort_column === 'espece' ? ($sort_order === 'ASC' ? '▲' : '▼') : '↕' ?>
                                                             </span>
                                                         </a>
                                                     </th>
@@ -255,6 +248,33 @@ function getSortLink($column, $current_sort, $current_order)
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    <!-- Pagination -->
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination justify-content-center">
+                                            <?php if ($page > 1) : ?>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=<?= $page - 1 ?>&sort=<?= $sort_column ?>&order=<?= $sort_order ?>&search=<?= urlencode($search) ?>" aria-label="Previous">
+                                                        <span aria-hidden="true">&laquo;</span>
+                                                    </a>
+                                                </li>
+                                            <?php endif; ?>
+
+                                            <?php for ($i = 1; $i <= $total_pages; $i++) : ?>
+                                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                                    <a class="page-link" href="?page=<?= $i ?>&sort=<?= $sort_column ?>&order=<?= $sort_order ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
+                                                </li>
+                                            <?php endfor; ?>
+
+                                            <?php if ($page < $total_pages) : ?>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=<?= $page + 1 ?>&sort=<?= $sort_column ?>&order=<?= $sort_order ?>&search=<?= urlencode($search) ?>" aria-label="Next">
+                                                        <span aria-hidden="true">&raquo;</span>
+                                                    </a>
+                                                </li>
+                                            <?php endif; ?>
+                                        </ul>
+                                    </nav>
                                 </div>
                             </div>
                         </div>
