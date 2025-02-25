@@ -9,7 +9,7 @@
             <div>
                 <ul class="navbar-nav gap-4">
                     <li class="nav-item ">
-                        <a class="nav-link text-white fs-5" href="./index.php">Accueil</a>
+                        <a class="nav-link text-white fs-5" href="../index.php">Accueil</a>
                     </li>
                     <li class="nav-item ">
                         <a class="nav-link text-white fs-5" href="./footer.php">A propos</a>
