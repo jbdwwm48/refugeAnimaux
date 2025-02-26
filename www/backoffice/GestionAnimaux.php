@@ -2,12 +2,65 @@
 session_start();
 require '../auth/initDb.php';
 
+// Activer les erreurs PHP
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['utilisateur'])) {
     header('Location: ../index.php');
     exit;
 }
 
+// Gérer la suppression d'un animal
+if (isset($_GET['delete'])) {
+    $animalId = $_GET['delete'];
+
+    // Vérifier que l'ID est valide
+    if (!is_numeric($animalId)) {
+        $_SESSION['error'] = "ID d'animal invalide.";
+        header('Location: gestionAnimaux.php');
+        exit;
+    }
+
+    try {
+        // Activer les exceptions PDO
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Commencer une transaction
+        $pdo->beginTransaction();
+
+        // Supprimer les entrées liées dans la table animal_espece
+        $stmt = $pdo->prepare("DELETE FROM animal_espece WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+
+        // Supprimer les entrées liées dans la table enfanter
+        $stmt = $pdo->prepare("DELETE FROM enfanter WHERE id_animal_1 = ? OR id_animal = ?");
+        $stmt->execute([$animalId, $animalId]);
+
+
+        $stmt = $pdo->prepare("DELETE FROM s_occuper WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+
+        // Supprimer l'animal de la table animal
+        $stmt = $pdo->prepare("DELETE FROM animal WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+
+        // Valider la transaction
+        $pdo->commit();
+
+        $_SESSION['success'] = "L'animal a été supprimé avec succès.";
+    } catch (Exception $e) {
+        // Annuler la transaction en cas d'erreur
+        $pdo->rollBack();
+        $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
+    }
+
+    // Rediriger vers la même page pour éviter la resoumission du formulaire
+    header('Location: gestionAnimaux.php');
+    exit;
+}
 // Gestion de la recherche et du tri
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'nom';
@@ -174,7 +227,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                     <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars($search) ?>">
                                                 </div>
                                                 <div class="col-auto">
-                                                    <button type="submit" class="btn btn-primary">Rechercher</button>
+                                                    <button type="submit" class="btn btn-primary border-white">Rechercher</button>
                                                 </div>
                                                 <div class="col-auto">
                                                     <!-- Bouton pour annuler les filtres -->
@@ -242,7 +295,12 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <td><?= htmlspecialchars($animal['espece']) ?></td>
                                                         <td>
                                                             <button class="btn btn-sm btn-info show-animal" data-id="<?= $animal['id_animal'] ?>">Voir</button>
+                                                            <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
+                                                                <a href="?delete=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-danger"
+                                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet animal ?');">Supprimer</a>
+                                                            <?php endif; ?>
                                                         </td>
+
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
