@@ -1,67 +1,69 @@
 <?php
+// Démarre une session PHP
 session_start();
+// Renouvelle l'ID de session pour des raisons de sécurité
+session_regenerate_id(true);
+
+// Inclusion du fichier de connexion à la base de données
 require '../auth/initDb.php';
 
-// Activer les erreurs PHP
+// Activer l'affichage des erreurs PHP
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Vérifier si l'utilisateur est connecté
+// Vérifie si l'utilisateur est connecté, sinon redirige vers la page d'accueil
 if (!isset($_SESSION['utilisateur'])) {
     header('Location: ../index.php');
     exit;
 }
 
-// Gérer la suppression d'un animal
+// Gestion de la suppression d'un animal
 if (isset($_GET['delete'])) {
     $animalId = $_GET['delete'];
 
-    // Vérifier que l'ID est valide
-    if (!is_numeric($animalId)) {
-        $_SESSION['error'] = "ID d'animal invalide.";
-        header('Location: gestionAnimaux.php');
-        exit;
-    }
-
-    try {
-        // Activer les exceptions PDO
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // Commencer une transaction
-        $pdo->beginTransaction();
-
-        // Supprimer les entrées liées dans la table animal_espece
-        $stmt = $pdo->prepare("DELETE FROM animal_espece WHERE id_animal = ?");
-        $stmt->execute([$animalId]);
-
-        // Supprimer les entrées liées dans la table enfanter
-        $stmt = $pdo->prepare("DELETE FROM enfanter WHERE id_animal_1 = ? OR id_animal = ?");
-        $stmt->execute([$animalId, $animalId]);
-
-
-        $stmt = $pdo->prepare("DELETE FROM s_occuper WHERE id_animal = ?");
-        $stmt->execute([$animalId]);
-
-        // Supprimer l'animal de la table animal
-        $stmt = $pdo->prepare("DELETE FROM animal WHERE id_animal = ?");
-        $stmt->execute([$animalId]);
-
-        // Valider la transaction
-        $pdo->commit();
-
-        $_SESSION['success'] = "L'animal a été supprimé avec succès.";
-    } catch (Exception $e) {
-        // Annuler la transaction en cas d'erreur
-        $pdo->rollBack();
-        $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
-    }
-
-    // Rediriger vers la même page pour éviter la resoumission du formulaire
+// Vérifie que l'ID de l'animal est un nombre valide
+if (!is_numeric($animalId)) {
+    $_SESSION['error'] = "ID d'animal invalide.";
     header('Location: gestionAnimaux.php');
     exit;
 }
-// Gestion de la recherche et du tri
+
+try {
+    // Active les exceptions PDO pour gérer les erreurs SQL
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Commence une transaction pour que toutes les suppressions se fassent en une seule fois
+    $pdo->beginTransaction();
+    // Supprime les relations de l'animal dans la table animal_espece
+    $stmt = $pdo->prepare("DELETE FROM animal_espece WHERE id_animal = ?");
+    $stmt->execute([$animalId]);
+    // Supprime les relations dans la table enfanter où l'animal est parent
+    $stmt = $pdo->prepare("DELETE FROM enfanter WHERE id_animal = ? OR id_animal_1 = ?");
+    $stmt->execute([$animalId, $animalId]);
+    // Supprime les entrées dans la table s_occuper liées à l'animal
+    $stmt = $pdo->prepare("DELETE FROM s_occuper WHERE id_animal = ?");
+    $stmt->execute([$animalId]);
+    // Supprime l'animal de la table principale 'animal'
+    $stmt = $pdo->prepare("DELETE FROM animal WHERE id_animal = ?");
+    $stmt->execute([$animalId]);
+    // Si tout s'est bien passé, on valide la transaction
+    $pdo->commit();
+    $_SESSION['success'] = "L'animal a été supprimé avec succès.";
+
+} catch (Exception $e) {
+
+    // Si une erreur survient, on annule les modifications
+    $pdo->rollBack();
+    $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
+
+}
+
+// Redirige à la page de gestion des animaux
+header('Location: gestionAnimaux.php');
+exit;
+}
+
+// Gestion des filtres de recherche et de tri
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'nom';
 $sort_order = isset($_GET['order']) && $_GET['order'] === 'desc' ? 'DESC' : 'ASC';
@@ -71,13 +73,13 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $perPage = 10; // Nombre d'animaux par page
 $offset = ($page - 1) * $perPage;
 
-// Sécurisation du tri pour éviter les injections SQL
+// Securisation du tri des colonnes pour éviter les injections SQL
 $allowed_columns = ['nom', 'genre', 'numero', 'cage', 'espece'];
 if (!in_array($sort_column, $allowed_columns)) {
-    $sort_column = 'nom'; // Valeur par défaut si la colonne n'est pas autorisée
+    $sort_column = 'nom'; // Par défaut, on trie par le nom
 }
 
-// Requête pour compter le nombre total d'animaux
+// Requête pour compter le nombre total d'animaux correspondant à la recherche
 $requete_count = $pdo->prepare("
     SELECT COUNT(DISTINCT a.id_animal) AS total
     FROM animal a
@@ -88,9 +90,9 @@ $requete_count = $pdo->prepare("
 ");
 $requete_count->execute([':search' => "%$search%"]);
 $total_animaux = $requete_count->fetch(PDO::FETCH_ASSOC)['total'];
-$total_pages = ceil($total_animaux / $perPage);
+$total_pages = ceil($total_animaux / $perPage); // Calcul du nombre total de pages pour la pagination
 
-// Requête pour récupérer les animaux de la page actuelle
+// Requête pour récupérer les animaux selon la page, tri et recherche
 $requete_animaux = $pdo->prepare("
     SELECT a.id_animal, a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.historique, a.image, c.numero AS cage, GROUP_CONCAT(e.nom SEPARATOR ', ') AS espece
     FROM animal a
@@ -100,19 +102,34 @@ $requete_animaux = $pdo->prepare("
     WHERE a.nom LIKE :search OR a.genre LIKE :search OR a.numero LIKE :search OR a.pays LIKE :search OR e.nom LIKE :search
     GROUP BY a.id_animal
     ORDER BY $sort_column $sort_order
-    LIMIT :limit OFFSET :offset
+    LIMIT $perPage OFFSET $offset
 ");
-// Liaison des paramètres avec PDO::PARAM_INT pour LIMIT et OFFSET
+
+// Lier les valeurs pour la recherche et pagination
 $requete_animaux->bindValue(':search', "%$search%", PDO::PARAM_STR);
-$requete_animaux->bindValue(':limit', $perPage, PDO::PARAM_INT);
-$requete_animaux->bindValue(':offset', $offset, PDO::PARAM_INT);
+$requete_animaux->bindValue(':limit', (int)$perPage, PDO::PARAM_INT);
+$requete_animaux->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
 
-// Exécution de la requête
+// Exécution de la requête pour récupérer les animaux
 $requete_animaux->execute();
-
 $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
 
-// Fonction pour générer les liens de tri avec flèches
+// Fonction pour formater la date
+function formatDate($date)
+{
+    if (!$date) return 'N/A';
+    $dateTime = DateTime::createFromFormat('Y-m-d', $date);
+    return $dateTime ? $dateTime->format('d/m/Y') : 'N/A';
+}
+
+// Formatage des dates pour chaque animal
+foreach ($animaux as &$animal) {
+    $animal['date_naissance'] = formatDate($animal['date_naissance'] ?? null);
+    $animal['date_arrivee'] = formatDate($animal['date_arrivee'] ?? null);
+}
+unset($animal);
+
+// Fonction pour générer des liens de tri
 function getSortLink($column, $current_sort, $current_order)
 {
     $new_order = ($current_sort === $column && $current_order === 'ASC') ? 'desc' : 'asc';
@@ -123,6 +140,9 @@ function getSortLink($column, $current_sort, $current_order)
     return "?sort=$column&order=$new_order&search=" . urlencode($_GET['search'] ?? '') . "&page=" . ($_GET['page'] ?? 1);
 }
 ?>
+
+<!-- // Envoi du JSON à JavaScript -->
+<!-- // echo "<script>var animals = " . json_encode($animaux) . ";</script>"; -->
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -231,7 +251,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                 </div>
                                                 <div class="col-auto">
                                                     <!-- Bouton pour annuler les filtres -->
-                                                    <a href="?" class="btn btn-danger">×</a>
+                                                    <a href="GestionAnimaux.php" class="btn btn-danger">×</a>
                                                 </div>
                                             </form>
                                         </div>
@@ -365,18 +385,18 @@ function getSortLink($column, $current_sort, $current_order)
 
                 if (animal) {
                     const details = `
-                        <table class="table table-sm table-bordered">
-                            <tr><th>Nom</th><td>${animal.nom}</td></tr>
-                            <tr><th>Genre</th><td>${animal.genre}</td></tr>
-                            <tr><th>Numéro</th><td>${animal.numero}</td></tr>
-                            <tr><th>Pays</th><td>${animal.pays || 'N/A'}</td></tr>
-                            <tr><th>Date de naissance</th><td>${animal.date_naissance || 'N/A'}</td></tr>
-                            <tr><th>Date d'arrivée</th><td>${animal.date_arrivee || 'N/A'}</td></tr>
-                            <tr><th>Cage</th><td>${animal.cage || 'Non assignée'}</td></tr>
-                            <tr><th>Espèce</th><td>${animal.espece}</td></tr>
-                            <tr><th>Historique</th><td>${animal.historique || 'Aucun'}</td></tr>
-                            ${animal.image ? `<tr><th>Image</th><td><img src="${animal.image}" alt="${animal.nom}" style="max-width: 200px;"></td></tr>` : ''}
-                        </table>
+                            <table class="table table-sm table-bordered">
+                                <tr><th>Nom</th><td>${animal.nom}</td></tr>
+                                <tr><th>Genre</th><td>${animal.genre}</td></tr>
+                                <tr><th>Numéro</th><td>${animal.numero}</td></tr>
+                                <tr><th>Pays</th><td>${animal.pays || 'N/A'}</td></tr>
+                                <tr><th>Date de naissance</th><td>${animal.date_naissance}</td></tr>
+                                <tr><th>Date d'arrivée</th><td>${animal.date_arrivee}</td></tr>
+                                <tr><th>Cage</th><td>${animal.cage || 'Non assignée'}</td></tr>
+                                <tr><th>Espèce</th><td>${animal.espece}</td></tr>
+                                <tr><th>Historique</th><td>${animal.historique || 'Aucun'}</td></tr>
+                                ${animal.image ? `<tr><th>Image</th><td><img src="${animal.image}" alt="${animal.nom}" style="max-width: 200px;"></td></tr>` : ''}
+                            </table>
                     `;
                     document.getElementById('animal-details').innerHTML = details;
                     document.getElementById('animal-lightbox').style.display = 'flex';
