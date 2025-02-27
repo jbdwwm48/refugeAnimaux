@@ -9,21 +9,16 @@ if (!isset($_SESSION['utilisateur'])) {
 }
 
 // Récupérer les informations de l'utilisateur
-$role_utilisateur = strtolower($_SESSION['utilisateur']['poste']); // Convertir en minuscules
-$id_utilisateur = $_SESSION['utilisateur']['id_personnel'];
-$prenom_utilisateur = $_SESSION['utilisateur']['prenom'];
-$nom_utilisateur = $_SESSION['utilisateur']['nom'];
+$role_utilisateur    = strtolower($_SESSION['utilisateur']['poste']); 
+$id_utilisateur      = $_SESSION['utilisateur']['id_personnel'];
+$prenom_utilisateur  = $_SESSION['utilisateur']['prenom'];
+$nom_utilisateur     = $_SESSION['utilisateur']['nom'];
 
 // Fonction pour filtrer les données en fonction du rôle
 function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
 {
     if ($role_utilisateur === 'soigneur') {
-        // Le soigneur ne voit que ses propres informations
-        $requete_personnels = $pdo->prepare("
-            SELECT id_personnel, nom, poste, login 
-            FROM personnel 
-            WHERE id_personnel = :id_utilisateur
-        ");
+        $requete_personnels = $pdo->prepare("SELECT id_personnel, prenom, nom, poste, login FROM personnel WHERE id_personnel = :id_utilisateur");
         $requete_personnels->bindValue(':id_utilisateur', $id_utilisateur, PDO::PARAM_INT);
         $requete_personnels->execute();
         $personnel = $requete_personnels->fetch(PDO::FETCH_ASSOC);
@@ -32,254 +27,296 @@ function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
             return [];
         }
 
-        // Récupérer les animaux associés au soigneur
+        // Récupération des animaux du soigneur
         $id_personnel = $personnel['id_personnel'];
-        $requete_animaux = $pdo->prepare("
-            SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
-            FROM animal a 
+        $requete_animaux = $pdo->prepare("SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece FROM animal a 
             INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
             INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
             INNER JOIN espece e ON ae.id_espece = e.id_espece 
-            WHERE s.id_personnel = :id_personnel
-        ");
+            WHERE s.id_personnel = :id_personnel");
         $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
         $requete_animaux->execute();
         $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
 
         $personnel['animaux'] = $animaux;
-        return [$personnel]; // Retourner un tableau contenant le soigneur
-    } elseif ($role_utilisateur === 'cadre') {
-        // Le cadre voit tous les soigneurs et leurs animaux
-        $requete_personnels = $pdo->prepare("
-            SELECT id_personnel, nom, poste, login 
-            FROM personnel 
-            WHERE poste = 'soigneur'
-        ");
+        return [$personnel];
+    } elseif ($role_utilisateur === 'cadre' || $role_utilisateur === 'administratif') {
+        $requete_personnels = $pdo->prepare("SELECT id_personnel, prenom, nom, poste, login FROM personnel");
         $requete_personnels->execute();
         $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
 
-        // Pour chaque soigneur, récupérer les animaux associés
-        foreach ($personnels as &$personnel) {
-            $id_personnel = $personnel['id_personnel'];
-            $requete_animaux = $pdo->prepare("
-                SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
-                FROM animal a 
-                INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
-                INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
-                INNER JOIN espece e ON ae.id_espece = e.id_espece 
-                WHERE s.id_personnel = :id_personnel
-            ");
-            $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
-            $requete_animaux->execute();
-            $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
-
-            $personnel['animaux'] = $animaux;
-        }
-
-        return $personnels; // Retourner un tableau contenant tous les soigneurs et leurs animaux
-    } elseif ($role_utilisateur === 'administratif') {
-        // L'administratif voit tout le personnel
-        $requete_personnels = $pdo->prepare("
-            SELECT id_personnel, nom, poste, login 
-            FROM personnel
-        ");
-        $requete_personnels->execute();
-        $personnels = $requete_personnels->fetchAll(PDO::FETCH_ASSOC);
-
-        // Pour chaque soigneur, récupérer les animaux associés
         foreach ($personnels as &$personnel) {
             if ($personnel['poste'] === 'soigneur') {
                 $id_personnel = $personnel['id_personnel'];
-                $requete_animaux = $pdo->prepare("
-                    SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece 
-                    FROM animal a 
+                $requete_animaux = $pdo->prepare("SELECT a.nom, a.genre, a.numero, a.pays, a.date_naissance, a.date_arrivee, a.date_deces, a.historique, a.image, e.nom as espece FROM animal a 
                     INNER JOIN s_occuper s ON a.id_animal = s.id_animal 
                     INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
                     INNER JOIN espece e ON ae.id_espece = e.id_espece 
-                    WHERE s.id_personnel = :id_personnel
-                ");
+                    WHERE s.id_personnel = :id_personnel");
                 $requete_animaux->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
                 $requete_animaux->execute();
                 $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
-
                 $personnel['animaux'] = $animaux;
             }
         }
-
-        return $personnels; // Retourner un tableau contenant tout le personnel
-    } else {
-        // Si le rôle n'est pas reconnu, retourner un tableau vide
-        return [];
+        return $personnels;
     }
+    return [];
 }
 
-// Filtrer les données en fonction du rôle
+// Gérer la suppression
+if (isset($_GET['delete_id'])) {
+    $delete_id = $_GET['delete_id'];
+
+    // Supprimer les liens entre le soigneur et les animaux
+    $requete_delete_links = $pdo->prepare("DELETE FROM s_occuper WHERE id_personnel = :id_personnel");
+    $requete_delete_links->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
+    $requete_delete_links->execute();
+
+    // Supprimer le personnel
+    $requete_delete = $pdo->prepare("DELETE FROM personnel WHERE id_personnel = :id_personnel");
+    $requete_delete->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
+    $requete_delete->execute();
+
+    header("Location: {$_SERVER['PHP_SELF']}");
+    exit;
+}
+
+// Ajouter un membre
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajouter'])) {
+    $prenom = $_POST['prenom'];
+    $nom    = $_POST['nom'];
+    $poste  = $_POST['poste'];
+    $login  = $_POST['login'];
+
+    $requete_ajouter = $pdo->prepare("INSERT INTO personnel (prenom, nom, poste, login) VALUES (:prenom, :nom, :poste, :login)");
+    $requete_ajouter->bindValue(':prenom', $prenom);
+    $requete_ajouter->bindValue(':nom', $nom);
+    $requete_ajouter->bindValue(':poste', $poste);
+    $requete_ajouter->bindValue(':login', $login);
+    $requete_ajouter->execute();
+    header("Location: {$_SERVER['PHP_SELF']}");
+    exit;
+}
+
+// Mise à jour d'un membre
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modifier'])) {
+    $id_personnel = $_POST['id_personnel'];
+    $prenom       = $_POST['prenom'];
+    $nom          = $_POST['nom'];
+    $poste        = $_POST['poste'];
+    $login        = $_POST['login'];
+    $mot_de_passe = $_POST['mot_de_passe'];
+
+    if (!empty($mot_de_passe)) {
+        // Hachage du mot de passe si un nouveau est fourni
+        $mot_de_passe_hash = password_hash($mot_de_passe, PASSWORD_DEFAULT);
+        $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login, mot_de_passe = :mot_de_passe WHERE id_personnel = :id_personnel");
+        $requete_modifier->bindValue(':mot_de_passe', $mot_de_passe_hash);
+    } else {
+        $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login WHERE id_personnel = :id_personnel");
+    }
+    $requete_modifier->bindValue(':prenom', $prenom);
+    $requete_modifier->bindValue(':nom', $nom);
+    $requete_modifier->bindValue(':poste', $poste);
+    $requete_modifier->bindValue(':login', $login);
+    $requete_modifier->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
+    $requete_modifier->execute();
+
+    header("Location: {$_SERVER['PHP_SELF']}");
+    exit;
+}
+
+// Récupérer les personnels
 $personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion du Personnel</title>
-
-    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <!-- AdminLTE CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-
-    <!-- Styles personnalisés -->
-    <style>
-        .table-responsive {
-            max-width: 100%;
-            margin: auto;
-        }
-
-        .table-sm td,
-        .table-sm th {
-            padding: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .navbar-custom {
-            background-color: rgb(72, 149, 182);
-            color: white;
-        }
-
-        .animal-details {
-            background-color: #f8f9fa;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-        }
-
-        .animal-details table {
-            margin-bottom: 0;
-        }
-
-        .collapse-toggle {
-            cursor: pointer;
-        }
-    </style>
 </head>
-
-<body class="hold-transition sidebar-mini">
-    <!-- Navbar -->
-    <?php include('../nav.php'); ?>
-
-    <div class="wrapper">
-        <!-- Sidebar -->
-        <?php include('./sidebar.php') ?>
-
-        <div class="content-wrapper">
-            <div class="content-header">
-                <div class="container-fluid">
-                    <h1 class="text-center my-4">Gestion du Personnel</h1>
-                </div>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light" style="background-color: #f8f9fa;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+            <img src="https://mdbootstrap.com/img/Photos/new-templates/animal-shelter/logo.png" height="70" alt="logo du refuge" loading="lazy" />                
+            </a>
+            <div class="d-flex">
+                <a href="dashboard.php" class="btn btn-outline-primary me-2">Dashboard</a>
+                <a href="logout.php" class="btn btn-outline-danger">Déconnexion</a>
             </div>
-
-            <section class="content">
-                <div class="container-fluid">
-                    <!-- Tableau -->
-                    <div class="row justify-content-center">
-                        <div class="col-md-10">
-                            <div class="card shadow">
-                                <div class="card-header bg-primary text-white">
-                                    <h2 class="card-title">Liste du Personnel</h2>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-bordered table-striped">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th>Nom</th>
-                                                    <th>Poste</th>
-                                                    <th>Login</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if (empty($personnels)) : ?>
-                                                    <tr>
-                                                        <td colspan="4" class="text-center">Aucun employé trouvé.</td>
-                                                    </tr>
-                                                <?php else : ?>
-                                                    <?php foreach ($personnels as $personnel) : ?>
-                                                        <tr>
-                                                            <td><?= htmlspecialchars($personnel['nom']) ?></td>
-                                                            <td><?= htmlspecialchars($personnel['poste']) ?></td>
-                                                            <td><?= htmlspecialchars($personnel['login']) ?></td>
-                                                            <td>
-                                                                <?php if ($role_utilisateur === 'administratif') : ?>
-                                                                    <button class="btn btn-sm btn-warning">Modifier</button>
-                                                                    <button class="btn btn-sm btn-danger">Supprimer</button>
-                                                                <?php endif; ?>
-                                                                <?php if (($role_utilisateur === 'cadre' || $role_utilisateur === 'administratif') && $personnel['poste'] === 'soigneur' && !empty($personnel['animaux'])) : ?>
-                                                                    <button class="btn btn-sm btn-info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>">
-                                                                        Voir les animaux
-                                                                    </button>
-                                                                <?php elseif ($role_utilisateur === 'soigneur' && !empty($personnel['animaux'])) : ?>
-                                                                    <button class="btn btn-sm btn-info collapse-toggle" data-bs-toggle="collapse" data-bs-target="#animaux-<?= $personnel['id_personnel'] ?>">
-                                                                        Voir les animaux
-                                                                    </button>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                        </tr>
-                                                        <!-- Afficher les animaux sous chaque soigneur -->
-                                                        <?php if ((($role_utilisateur === 'cadre' || $role_utilisateur === 'administratif') && $personnel['poste'] === 'soigneur' && !empty($personnel['animaux'])) || ($role_utilisateur === 'soigneur' && !empty($personnel['animaux']))) : ?>
-                                                            <tr class="collapse" id="animaux-<?= $personnel['id_personnel'] ?>">
-                                                                <td colspan="4">
-                                                                    <div class="animal-details">
-                                                                        <table class="table table-sm table-bordered">
-                                                                            <thead>
-                                                                                <tr>
-                                                                                    <th>Nom</th>
-                                                                                    <th>Genre</th>
-                                                                                    <th>Numéro</th>
-                                                                                    <th>Pays</th>
-                                                                                    <th>Date de naissance</th>
-                                                                                    <th>Date d'arrivée</th>
-                                                                                    <th>Espèce</th>
-                                                                                    <th>Historique</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                <?php foreach ($personnel['animaux'] as $animal) : ?>
-                                                                                    <tr>
-                                                                                        <td><?= htmlspecialchars($animal['nom']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['genre']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['numero']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['pays']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['date_naissance']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['date_arrivee']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['espece']) ?></td>
-                                                                                        <td><?= htmlspecialchars($animal['historique']) ?></td>
-                                                                                    </tr>
-                                                                                <?php endforeach; ?>
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endif; ?>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <h1 class="text-center my-4">Gestion du Personnel</h1>
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title">Liste du Personnel</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Prénom</th>
+                                <th>Nom</th>
+                                <th>Poste</th>
+                                <th>Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($personnels as $personnel) : ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($personnel['prenom']) ?></td>
+                                    <td><?= htmlspecialchars($personnel['nom']) ?></td>
+                                    <td><?= htmlspecialchars($personnel['poste']) ?></td>
+                                    <td><?= htmlspecialchars($personnel['login']) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modifierModal"
+                                            data-id="<?= $personnel['id_personnel'] ?>"
+                                            data-prenom="<?= htmlspecialchars($personnel['prenom']) ?>"
+                                            data-nom="<?= htmlspecialchars($personnel['nom']) ?>"
+                                            data-poste="<?= htmlspecialchars($personnel['poste']) ?>"
+                                            data-login="<?= htmlspecialchars($personnel['login']) ?>">
+                                            Modifier
+                                        </button>
+                                        <a href="?delete_id=<?= $personnel['id_personnel'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Confirmer la suppression ?')">Supprimer</a>
+                                        <?php if ($personnel['poste'] === 'soigneur'): ?>
+                                            <button class="btn btn-sm btn-info" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#animauxModal"
+                                                data-animaux="<?= htmlspecialchars(json_encode($personnel['animaux'])) ?>">
+                                                Voir Animaux
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-            </section>
+                <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#ajouterModal">Ajouter un membre</button>
+            </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <!-- Modal pour voir les animaux -->
+    <div class="modal fade" id="animauxModal" tabindex="-1" aria-labelledby="animauxModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Animaux du Soigneur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="animauxList" class="row g-3">
+                        <!-- Les animaux seront affichés ici -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Modal de modification -->
+    <div class="modal fade" id="modifierModal" tabindex="-1" aria-labelledby="modifierModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifier un Membre</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="prenom" class="form-label">Prénom</label>
+                            <input type="text" class="form-control" id="prenom" name="prenom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="nom" name="nom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="poste" class="form-label">Poste</label>
+                            <input type="text" class="form-control" id="poste" name="poste" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="login" class="form-label">Login</label>
+                            <input type="text" class="form-control" id="login" name="login" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="mot_de_passe" class="form-label">Mot de passe (optionnel)</label>
+                            <input type="password" class="form-control" id="mot_de_passe" name="mot_de_passe">
+                        </div>
+                        <input type="hidden" name="id_personnel" id="id_personnel">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" name="modifier" class="btn btn-primary">Modifier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Afficher les animaux dans le modal
+        var animauxModal = document.getElementById('animauxModal');
+        animauxModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var animaux = JSON.parse(button.getAttribute('data-animaux'));
+            var animauxList = document.getElementById('animauxList');
+            animauxList.innerHTML = '';
+
+            animaux.forEach(function (animal) {
+                var col = document.createElement('div');
+                col.classList.add('col-md-6');
+                col.innerHTML = `
+                    <div class="card">
+                        <img src="${animal.image || 'default.jpg'}" class="card-img-top" alt="Image de l'animal">
+                        <div class="card-body">
+                            <h5 class="card-title">${animal.nom}</h5>
+                            <p class="card-text">
+                                <strong>Espèce</strong>: ${animal.espece}<br>
+                                <strong>Genre</strong>: ${animal.genre}<br>
+                                <strong>Naissance</strong>: ${animal.date_naissance}<br>
+                                <strong>Arrivée</strong>: ${animal.date_arrivee}<br>
+                                <strong>Décès</strong>: ${animal.date_deces || 'Non décédé'}<br>
+                                <strong>Historique</strong>: ${animal.historique}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                animauxList.appendChild(col);
+            });
+        });
+
+        // Remplir les champs de modification du personnel
+        var modifierModal = document.getElementById('modifierModal');
+        modifierModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var prenom = button.getAttribute('data-prenom');
+            var nom = button.getAttribute('data-nom');
+            var poste = button.getAttribute('data-poste');
+            var login = button.getAttribute('data-login');
+
+            document.getElementById('id_personnel').value = id;
+            document.getElementById('prenom').value = prenom;
+            document.getElementById('nom').value = nom;
+            document.getElementById('poste').value = poste;
+            document.getElementById('login').value = login;
+        });
+    </script>
+</body>
 </html>
