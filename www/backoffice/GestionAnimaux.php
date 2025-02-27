@@ -22,45 +22,43 @@ if (!isset($_SESSION['utilisateur'])) {
 if (isset($_GET['delete'])) {
     $animalId = $_GET['delete'];
 
-// Vérifie que l'ID de l'animal est un nombre valide
-if (!is_numeric($animalId)) {
-    $_SESSION['error'] = "ID d'animal invalide.";
+    // Vérifie que l'ID de l'animal est un nombre valide
+    if (!is_numeric($animalId)) {
+        $_SESSION['error'] = "ID d'animal invalide.";
+        header('Location: gestionAnimaux.php');
+        exit;
+    }
+
+    try {
+        // Active les exceptions PDO pour gérer les erreurs SQL
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // Commence une transaction pour que toutes les suppressions se fassent en une seule fois
+        $pdo->beginTransaction();
+        // Supprime les relations de l'animal dans la table animal_espece
+        $stmt = $pdo->prepare("DELETE FROM animal_espece WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+        // Supprime les relations dans la table enfanter où l'animal est parent
+        $stmt = $pdo->prepare("DELETE FROM enfanter WHERE id_animal = ? OR id_animal_1 = ?");
+        $stmt->execute([$animalId, $animalId]);
+        // Supprime les entrées dans la table s_occuper liées à l'animal
+        $stmt = $pdo->prepare("DELETE FROM s_occuper WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+        // Supprime l'animal de la table principale 'animal'
+        $stmt = $pdo->prepare("DELETE FROM animal WHERE id_animal = ?");
+        $stmt->execute([$animalId]);
+        // Si tout s'est bien passé, on valide la transaction
+        $pdo->commit();
+        $_SESSION['success'] = "L'animal a été supprimé avec succès.";
+    } catch (Exception $e) {
+
+        // Si une erreur survient, on annule les modifications
+        $pdo->rollBack();
+        $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
+    }
+
+    // Redirige à la page de gestion des animaux
     header('Location: gestionAnimaux.php');
     exit;
-}
-
-try {
-    // Active les exceptions PDO pour gérer les erreurs SQL
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // Commence une transaction pour que toutes les suppressions se fassent en une seule fois
-    $pdo->beginTransaction();
-    // Supprime les relations de l'animal dans la table animal_espece
-    $stmt = $pdo->prepare("DELETE FROM animal_espece WHERE id_animal = ?");
-    $stmt->execute([$animalId]);
-    // Supprime les relations dans la table enfanter où l'animal est parent
-    $stmt = $pdo->prepare("DELETE FROM enfanter WHERE id_animal = ? OR id_animal_1 = ?");
-    $stmt->execute([$animalId, $animalId]);
-    // Supprime les entrées dans la table s_occuper liées à l'animal
-    $stmt = $pdo->prepare("DELETE FROM s_occuper WHERE id_animal = ?");
-    $stmt->execute([$animalId]);
-    // Supprime l'animal de la table principale 'animal'
-    $stmt = $pdo->prepare("DELETE FROM animal WHERE id_animal = ?");
-    $stmt->execute([$animalId]);
-    // Si tout s'est bien passé, on valide la transaction
-    $pdo->commit();
-    $_SESSION['success'] = "L'animal a été supprimé avec succès.";
-
-} catch (Exception $e) {
-
-    // Si une erreur survient, on annule les modifications
-    $pdo->rollBack();
-    $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
-
-}
-
-// Redirige à la page de gestion des animaux
-header('Location: gestionAnimaux.php');
-exit;
 }
 
 // Gestion des filtres de recherche et de tri
@@ -314,10 +312,24 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <td><?= htmlspecialchars($animal['cage'] ?? 'Non assignée') ?></td>
                                                         <td><?= htmlspecialchars($animal['espece']) ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-info show-animal" data-id="<?= $animal['id_animal'] ?>">Voir</button>
+                                                            <button class="btn btn-sm btn-info show-animal" data-id="<?= $animal['id_animal'] ?>"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                                                                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                                                                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                                                                </svg></button>
                                                             <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
-                                                                <a href="?delete=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-danger"
-                                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet animal ?');">Supprimer</a>
+                                                                <a href="update_animal.php?id=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-success">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                                                                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1a.5.5 0 0 1-.62-.62l1-4a.5.5 0 0 1 .11-.168l9.5-9.5zM11.207 2L3 10.207V12h1.793L14 3.793 11.207 2zM2 13h10v1H2v-1z" />
+                                                                    </svg>
+                                                                </a>
+                                                            <?php endif; ?>
+                                                            <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
+                                                                <button type="button" class="btn btn-sm btn-danger delete-animal" data-id="<?= $animal['id_animal'] ?>">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                                                    </svg>
+                                                                </button>
                                                             <?php endif; ?>
                                                         </td>
                                                     </tr>
@@ -370,6 +382,24 @@ function getSortLink($column, $current_sort, $current_order)
         </div>
     </div>
 
+    <!-- Modal de confirmation de suppression -->
+    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirmation de suppression</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Êtes-vous sûr de vouloir supprimer l'animal : <strong id="animalName"></strong> ?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <a id="confirmDeleteButton" href="#" class="btn btn-danger">Supprimer</a>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- AdminLTE JS -->
@@ -411,6 +441,30 @@ function getSortLink($column, $current_sort, $current_order)
             if (e.target === this) {
                 this.style.display = 'none';
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gérer l'ouverture du modal de suppression
+            document.querySelectorAll('.delete-animal').forEach(button => {
+                button.addEventListener('click', function() {
+                    const animalId = this.getAttribute('data-id');
+                    const animals = <?php echo json_encode($animaux); ?>;
+                    const animal = animals.find(a => a.id_animal == animalId);
+
+                    if (animal) {
+                        const deleteUrl = `?delete=${animalId}`;
+
+                        // Mettre à jour le lien de suppression dans le modal
+                        document.getElementById('confirmDeleteButton').href = deleteUrl;
+
+                        // Afficher le nom de l'animal dans le modal
+                        document.getElementById('animalName').textContent = animal.nom;
+                        // Ouvrir le modal
+                        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+                        deleteModal.show();
+                    }
+                });
+            });
         });
     </script>
 </body>
