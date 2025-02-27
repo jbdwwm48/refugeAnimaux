@@ -320,7 +320,6 @@ function getSortLink($column, $current_sort, $current_order)
                                                                     onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet animal ?');">Supprimer</a>
                                                             <?php endif; ?>
                                                         </td>
-
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
