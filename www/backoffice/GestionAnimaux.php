@@ -56,6 +56,7 @@ if (isset($_GET['delete'])) {
         $_SESSION['error'] = "Erreur lors de la suppression de l'animal : " . $e->getMessage();
     }
 
+
     // Redirige à la page de gestion des animaux
     header('Location: gestionAnimaux.php');
     exit;
@@ -138,10 +139,6 @@ function getSortLink($column, $current_sort, $current_order)
     return "?sort=$column&order=$new_order&search=" . urlencode($_GET['search'] ?? '') . "&page=" . ($_GET['page'] ?? 1);
 }
 ?>
-
-<!-- // Envoi du JSON à JavaScript -->
-<!-- // echo "<script>var animals = " . json_encode($animaux) . ";</script>"; -->
-
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -237,9 +234,20 @@ function getSortLink($column, $current_sort, $current_order)
                             <div class="card shadow">
                                 <div class="card-header bg-primary text-white">
                                     <h2 class="card-title">Liste des Animaux</h2>
+
                                     <!-- Formulaire de recherche -->
                                     <div class="container-fluid mb-1">
-                                        <div class="d-flex justify-content-end">
+                                        <div class="d-flex justify-content-end gap-4">
+
+                                            <!-- Bouton pour ouvrir le modal -->
+                                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#ajouterAnimalModal">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                                </svg>
+                                                Ajouter un animal
+                                            </button>
+
                                             <form method="GET" class="row g-3">
                                                 <div class="col-auto">
                                                     <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars($search) ?>">
@@ -317,7 +325,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                                     <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
                                                                 </svg></button>
                                                             <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
-                                                                <a href="update_animal.php?id=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-success">
+                                                                <a href="update_animal.php?id=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-warning">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                                                                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1a.5.5 0 0 1-.62-.62l1-4a.5.5 0 0 1 .11-.168l9.5-9.5zM11.207 2L3 10.207V12h1.793L14 3.793 11.207 2zM2 13h10v1H2v-1z" />
                                                                     </svg>
@@ -400,6 +408,92 @@ function getSortLink($column, $current_sort, $current_order)
             </div>
         </div>
     </div>
+
+    <!-- Modal pour ajouter un animal -->
+    <div class="modal fade" id="ajouterAnimalModal" tabindex="-1" aria-labelledby="ajouterAnimalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ajouterAnimalModalLabel">Ajouter un animal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAjouterAnimal" action="ajouter_animal.php" method="POST">
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="nom" name="nom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Genre</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="genreF" name="genre" value="F" required checked>
+                                    <label class="form-check-label" for="genreF">Femelle</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="genreM" name="genre" value="M" required>
+                                    <label class="form-check-label" for="genreM">Mâle</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero" class="form-label">Numéro</label>
+                            <input type="text" class="form-control" id="numero" name="numero" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pays" class="form-label">Pays d'origine</label>
+                            <input type="text" class="form-control" id="pays" name="pays">
+                        </div>
+                        <div class="mb-3">
+                            <label for="date_naissance" class="form-label">Date de naissance</label>
+                            <input type="date" class="form-control" id="date_naissance" name="date_naissance">
+                        </div>
+                        <div class="mb-3">
+                            <label for="date_arrivee" class="form-label">Date d'arrivée</label>
+                            <input type="date" class="form-control" id="date_arrivee" name="date_arrivee">
+                        </div>
+                        <div class="mb-3">
+                            <label for="historique" class="form-label">Historique</label>
+                            <textarea class="form-control" id="historique" name="historique" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="image" class="form-label">URL de l'image</label>
+                            <input type="text" class="form-control" id="image" name="image">
+                        </div>
+                        <div class="mb-3">
+                            <label for="cage" class="form-label">Cage</label>
+                            <select class="form-control" id="cage" name="cage">
+                                <option value="">Non assignée</option>
+                                <?php
+                                // Récupérer la liste des cages disponibles
+                                $stmt = $pdo->query("SELECT id_cage, numero FROM cage");
+                                while ($cage = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<option value='{$cage['id_cage']}'>{$cage['numero']}</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="espece" class="form-label">Espèce</label>
+                            <select class="form-control" id="espece" name="espece" required>
+                                <?php
+                                // Récupérer la liste des espèces disponibles
+                                $stmt = $pdo->query("SELECT id_espece, nom FROM espece");
+                                while ($espece = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<option value='{$espece['id_espece']}'>{$espece['nom']}</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="submit" form="formAjouterAnimal" class="btn btn-primary">Ajouter</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- AdminLTE JS -->
@@ -465,6 +559,12 @@ function getSortLink($column, $current_sort, $current_order)
                     }
                 });
             });
+        });
+
+        document.getElementById('formAjouterAnimal').addEventListener('submit', function() {
+            // Fermer le modal après la soumission du formulaire
+            const modal = bootstrap.Modal.getInstance(document.getElementById('ajouterAnimalModal'));
+            modal.hide();
         });
     </script>
 </body>
