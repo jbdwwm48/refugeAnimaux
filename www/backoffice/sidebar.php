@@ -1,4 +1,4 @@
-<?php 
+<?php
 function setActiveClass($pageName)
 {
     $current_page = basename($_SERVER['PHP_SELF']);
@@ -35,6 +35,12 @@ function setActiveClass($pageName)
                     <a href="gestionAnimaux.php" class="nav-link <?= setActiveClass('gestionAnimaux.php') ?>">
                         <i class="nav-icon fas fa-dog"></i>
                         <p>Liste des animaux</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="gestionEspeces.php" class="nav-link <?= setActiveClass('gestionEspeces.php') ?>">
+                        <i class="nav-icon fas fa-dog"></i>
+                        <p>Liste des espèces</p>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -88,16 +94,16 @@ function setActiveClass($pageName)
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function() {
         const toggler = document.querySelector(".navbar-toggler");
         const sidebar = document.querySelector("#sidebarMenu");
 
 
-        toggler.addEventListener("click", function () {
+        toggler.addEventListener("click", function() {
             sidebar.classList.toggle("show");
         });
 
-        document.addEventListener("click", function (event) {
+        document.addEventListener("click", function(event) {
             if (!sidebar.contains(event.target) && !toggler.contains(event.target)) {
                 sidebar.classList.remove("show");
             }
@@ -109,10 +115,10 @@ function setActiveClass($pageName)
     @media (max-width: 768px) {
         #sidebarMenu {
             position: fixed;
-            top: 56px; 
+            top: 56px;
             left: 0;
             width: 250px;
-            height: calc(100% - 56px); 
+            height: calc(100% - 56px);
             background-color: #343a40;
             z-index: 1050;
             overflow-y: auto;
@@ -124,7 +130,7 @@ function setActiveClass($pageName)
             transform: translateX(0);
         }
 
-        #sidebarMenu.show ~ .container {
+        #sidebarMenu.show~.container {
             opacity: 0.5;
         }
 

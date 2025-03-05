@@ -144,7 +144,7 @@ foreach ($especes_animaux as $espece) {
 
                         <!-- Carte Espèces -->
                         <div class="col-md-3">
-                            <a href="gestionEspece.php" class="text-decoration-none">
+                            <a href="gestionEspeces.php" class="text-decoration-none">
                                 <div class="card card-custom bg-warning text-dark mb-4">
                                     <div class="card-body d-flex align-items-center">
                                         <i class="bi bi-balloon-heart"></i>
