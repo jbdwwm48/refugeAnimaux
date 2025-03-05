@@ -131,6 +131,7 @@ $sql_cages_libres = "
 $stmt_cages_libres = $pdo->prepare($sql_cages_libres);
 $stmt_cages_libres->execute();
 $cages_libres = $stmt_cages_libres->fetchAll();
+
 // Formatage des dates pour chaque animal
 foreach ($animaux as &$animal) {
     $animal['date_naissance'] = formatDate($animal['date_naissance'] ?? null);
@@ -238,13 +239,13 @@ function getSortLink($column, $current_sort, $current_order)
             </div>
             <!-- Afficher un message de succès ou d'erreur -->
             <?php if (isset($_SESSION['success'])) : ?>
-                        <div class="alert alert-success m-4" role="alert"><?= $_SESSION['success'] ?></div>
-                        <?php unset($_SESSION['success']); ?>
-                    <?php endif; ?>
-                    <?php if (isset($_SESSION['error'])) : ?>
-                        <div class="alert alert-danger m-4" role="alert"><?= $_SESSION['error'] ?></div>
-                        <?php unset($_SESSION['error']); ?>
-                    <?php endif; ?>
+                <div class="alert alert-success m-4" role="alert"><?= $_SESSION['success'] ?></div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error'])) : ?>
+                <div class="alert alert-danger m-4" role="alert"><?= $_SESSION['error'] ?></div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
 
             <section class="content">
                 <div class="container-fluid">
@@ -260,7 +261,7 @@ function getSortLink($column, $current_sort, $current_order)
                                         <div class="d-flex justify-content-end gap-4">
 
                                             <!-- Bouton pour ouvrir le modal -->
-                                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#ajouterAnimalModal">
+                                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#ajouterAnimalModal" aria-label="Ajouter un animal">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
                                                     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
                                                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
@@ -273,7 +274,7 @@ function getSortLink($column, $current_sort, $current_order)
                                                     <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= htmlspecialchars($search) ?>">
                                                 </div>
                                                 <div class="col-auto">
-                                                    <button type="submit" class="btn btn-primary border-white">Rechercher</button>
+                                                    <button type="submit" class="btn btn-primary border-white" aria-label="Rechercher un animal">Rechercher</button>
                                                 </div>
                                                 <div class="col-auto">
                                                     <!-- Bouton pour annuler les filtres -->
@@ -340,19 +341,19 @@ function getSortLink($column, $current_sort, $current_order)
                                                         <td><?= htmlspecialchars($animal['cage'] ?? 'Non assignée') ?></td>
                                                         <td><?= htmlspecialchars($animal['espece']) ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-info show-animal" data-id="<?= $animal['id_animal'] ?>"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                                                            <button class="btn btn-sm btn-info show-animal" aria-label="Voir le detail d'un animal" data-id="<?= $animal['id_animal'] ?>"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
                                                                     <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
                                                                     <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
                                                                 </svg></button>
                                                             <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
-                                                                <a href="update_animal.php?id=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-warning">
+                                                                <a href="update_animal.php?id=<?= $animal['id_animal'] ?>" class="btn btn-sm btn-warning" aria-label="Modifier un animal">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                                                                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1a.5.5 0 0 1-.62-.62l1-4a.5.5 0 0 1 .11-.168l9.5-9.5zM11.207 2L3 10.207V12h1.793L14 3.793 11.207 2zM2 13h10v1H2v-1z" />
                                                                     </svg>
                                                                 </a>
                                                             <?php endif; ?>
                                                             <?php if ($_SESSION['utilisateur']['poste'] !== 'soigneur') : ?>
-                                                                <button type="button" class="btn btn-sm btn-danger delete-animal" data-id="<?= $animal['id_animal'] ?>">
+                                                                <button type="button" class="btn btn-sm btn-danger delete-animal" aria-label="Supprimer un animal" data-id="<?= $animal['id_animal'] ?>">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                                                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
                                                                         <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
@@ -404,7 +405,7 @@ function getSortLink($column, $current_sort, $current_order)
     <!-- Lightbox pour les détails de l'animal -->
     <div class="lightbox" id="animal-lightbox">
         <div class="lightbox-content">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" aria-label="fermer la fenetre">&times;</span>
             <h3>Détails de l'animal</h3>
             <div id="animal-details"></div>
         </div>
@@ -435,7 +436,7 @@ function getSortLink($column, $current_sort, $current_order)
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="ajouterAnimalModalLabel">Ajouter un animal</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close fermer la fenetre"></button>
                 </div>
                 <div class="modal-body">
                     <form id="formAjouterAnimal" action="ajouter_animal.php" method="POST">
@@ -456,29 +457,36 @@ function getSortLink($column, $current_sort, $current_order)
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="numero" class="form-label">Numéro</label>
-                            <input type="text" class="form-control" id="numero" name="numero" required>
+
+                        <div class="form-group">
+                            <label for="numero">Numéro</label>
+                            <input type="text" class="form-control" name="numero" id="numero">
                         </div>
+
                         <div class="mb-3">
                             <label for="pays" class="form-label">Pays d'origine</label>
                             <input type="text" class="form-control" id="pays" name="pays">
                         </div>
+
                         <div class="mb-3">
                             <label for="date_naissance" class="form-label">Date de naissance</label>
                             <input type="date" class="form-control" id="date_naissance" name="date_naissance">
                         </div>
+
                         <div class="mb-3">
                             <label for="date_arrivee" class="form-label">Date d'arrivée</label>
                             <input type="date" class="form-control" id="date_arrivee" name="date_arrivee">
                         </div>
+
                         <div class="mb-3">
                             <label for="historique" class="form-label">Historique</label>
                             <textarea class="form-control" id="historique" name="historique" rows="3"></textarea>
                         </div>
+
                         <div class="mb-3">
-                            <label for="image" class="form-label">URL de l'image</label>
-                            <input type="text" class="form-control" id="image" name="image">
+                            <label for="image_url" class="form-label">URL de l'image</label>
+                            <input type="url" class="form-control" id="image_url" name="image_url" placeholder="https://exemple.com/image.jpg">
+                            <img id="imagePreview" src="" alt="Aperçu de l'image" class="mt-2" style="max-width: 200px; display: none;">
                         </div>
 
                         <div class="form-group">
@@ -486,30 +494,25 @@ function getSortLink($column, $current_sort, $current_order)
                             <select class="form-control" name="cage" id="cage" required>
                                 <option value="">Sélectionner une cage</option>
                                 <?php foreach ($cages_libres as $cage) : ?>
-                                    <option value="<?= $cage['id_cage'] ?>">
-                                        Cage #<?= htmlspecialchars($cage['id_cage']) ?>
-                                    </option>
+                                    <option value="<?= $cage['id_cage'] ?>">Cage #<?= htmlspecialchars($cage['id_cage']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
+                        <!-- Espèce -->
                         <div class="mb-3">
                             <label for="espece" class="form-label">Espèce</label>
                             <select class="form-control" id="espece" name="espece" required>
-                                <?php
-                                // Récupérer la liste des espèces disponibles
-                                $stmt = $pdo->query("SELECT id_espece, nom FROM espece");
-                                while ($espece = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$espece['id_espece']}'>{$espece['nom']}</option>";
-                                }
-                                ?>
+                                <option value="">Sélectionner une espèce</option>
+                                <?php foreach ($especes as $espece) : ?>
+                                    <option value="<?= $espece['id_espece'] ?>"><?= htmlspecialchars($espece['nom']) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                    <button type="submit" form="formAjouterAnimal" class="btn btn-primary">Ajouter</button>
+                    <button type="submit" form="formAjouterAnimal" class="btn btn-primary" aria-label="Ajouter cet animal">Ajouter</button>
                 </div>
             </div>
         </div>
@@ -521,6 +524,17 @@ function getSortLink($column, $current_sort, $current_order)
     <!-- JavaScript pour gérer la lightbox -->
 
     <script>
+        document.getElementById('image_url').addEventListener('input', function() {
+            const imageUrl = this.value;
+            const imagePreview = document.getElementById('imagePreview');
+            if (imageUrl) {
+                imagePreview.src = imageUrl;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
+
         document.querySelectorAll('.show-animal').forEach(button => {
             button.addEventListener('click', function() {
                 const animalId = this.getAttribute('data-id');
