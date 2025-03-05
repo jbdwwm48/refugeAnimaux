@@ -108,9 +108,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="bg-light w-75 m-auto">
     <div class="container mt-5">
-        <h2>Modifier l'animal</h2>
+        <h2>Modifier un animal</h2>
 
         <?php
         if (isset($_SESSION['error'])) {
@@ -189,8 +189,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <?php endforeach; ?>
                 </select>
             </div>
-
             <button type="submit" class="btn btn-primary">Mettre à jour</button>
+            <a href="./GestionAnimaux.php" class="btn btn-danger active" role="button" data-bs-toggle="button" aria-pressed="true">Annuler</a>
         </form>
     </div>
 </body>

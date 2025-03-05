@@ -161,7 +161,8 @@ function getSortLink($column, $current_sort, $current_order)
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Styles personnalisés -->
     <style>
         .table-responsive {
@@ -235,17 +236,16 @@ function getSortLink($column, $current_sort, $current_order)
                     <h1 class="text-center my-4">Gestion des Animaux</h1>
                 </div>
             </div>
-            <?php
-            // Afficher un message de succès ou d'erreur
-            if (isset($_SESSION['error'])) {
-                echo '<div class="alert alert-danger">' . $_SESSION['error'] . '</div>';
-                unset($_SESSION['error']);
-            }
-            if (isset($_SESSION['success'])) {
-                echo '<div class="alert alert-success">' . $_SESSION['success'] . '</div>';
-                unset($_SESSION['success']);
-            }
-            ?>
+            <!-- Afficher un message de succès ou d'erreur -->
+            <?php if (isset($_SESSION['success'])) : ?>
+                        <div class="alert alert-success m-4" role="alert"><?= $_SESSION['success'] ?></div>
+                        <?php unset($_SESSION['success']); ?>
+                    <?php endif; ?>
+                    <?php if (isset($_SESSION['error'])) : ?>
+                        <div class="alert alert-danger m-4" role="alert"><?= $_SESSION['error'] ?></div>
+                        <?php unset($_SESSION['error']); ?>
+                    <?php endif; ?>
+
             <section class="content">
                 <div class="container-fluid">
                     <!-- Tableau -->
