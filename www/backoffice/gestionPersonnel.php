@@ -1,22 +1,22 @@
 <?php
-session_start();
-require '../auth/initDb.php';
+    session_start();
+    require '../auth/initDb.php';
 
-// Vérifier si l'utilisateur est connecté
-if (!isset($_SESSION['utilisateur'])) {
-    header('Location: ../index.php');
-    exit;
-}
+    // Vérifier si l'utilisateur est connecté
+    if (!isset($_SESSION['utilisateur'])) {
+        header('Location: ../index.php');
+        exit;
+    }
 
-// Récupérer les informations de l'utilisateur
-$role_utilisateur    = strtolower($_SESSION['utilisateur']['poste']); 
-$id_utilisateur      = $_SESSION['utilisateur']['id_personnel'];
-$prenom_utilisateur  = $_SESSION['utilisateur']['prenom'];
-$nom_utilisateur     = $_SESSION['utilisateur']['nom'];
+    // Récupérer les informations de l'utilisateur
+    $role_utilisateur    = strtolower($_SESSION['utilisateur']['poste']); 
+    $id_utilisateur      = $_SESSION['utilisateur']['id_personnel'];
+    $prenom_utilisateur  = $_SESSION['utilisateur']['prenom'];
+    $nom_utilisateur     = $_SESSION['utilisateur']['nom'];
 
-// Fonction pour filtrer les données en fonction du rôle
-function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
-{
+    // Fonction pour filtrer les données en fonction du rôle
+    function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
+    {
     if ($role_utilisateur === 'soigneur') {
         $requete_personnels = $pdo->prepare("SELECT id_personnel, prenom, nom, poste, login FROM personnel WHERE id_personnel = :id_utilisateur");
         $requete_personnels->bindValue(':id_utilisateur', $id_utilisateur, PDO::PARAM_INT);
@@ -64,71 +64,87 @@ function filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur = null)
     return [];
 }
 
-// Gérer la suppression
-if (isset($_GET['delete_id'])) {
-    $delete_id = $_GET['delete_id'];
+    // Gérer la suppression
+    if (isset($_GET['delete_id'])) {
+        $delete_id = $_GET['delete_id'];
 
-    // Supprimer les liens entre le soigneur et les animaux
-    $requete_delete_links = $pdo->prepare("DELETE FROM s_occuper WHERE id_personnel = :id_personnel");
-    $requete_delete_links->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
-    $requete_delete_links->execute();
+        // Supprimer les liens entre le soigneur et les animaux
+        $requete_delete_links = $pdo->prepare("DELETE FROM s_occuper WHERE id_personnel = :id_personnel");
+        $requete_delete_links->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
+        $requete_delete_links->execute();
 
-    // Supprimer le personnel
-    $requete_delete = $pdo->prepare("DELETE FROM personnel WHERE id_personnel = :id_personnel");
-    $requete_delete->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
-    $requete_delete->execute();
+        // Supprimer le personnel
+        $requete_delete = $pdo->prepare("DELETE FROM personnel WHERE id_personnel = :id_personnel");
+        $requete_delete->bindValue(':id_personnel', $delete_id, PDO::PARAM_INT);
+        $requete_delete->execute();
 
-    header("Location: {$_SERVER['PHP_SELF']}");
-    exit;
-}
-
-// Ajouter un membre
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajouter'])) {
-    $prenom = $_POST['prenom'];
-    $nom    = $_POST['nom'];
-    $poste  = $_POST['poste'];
-    $login  = $_POST['login'];
-
-    $requete_ajouter = $pdo->prepare("INSERT INTO personnel (prenom, nom, poste, login) VALUES (:prenom, :nom, :poste, :login)");
-    $requete_ajouter->bindValue(':prenom', $prenom);
-    $requete_ajouter->bindValue(':nom', $nom);
-    $requete_ajouter->bindValue(':poste', $poste);
-    $requete_ajouter->bindValue(':login', $login);
-    $requete_ajouter->execute();
-    header("Location: {$_SERVER['PHP_SELF']}");
-    exit;
-}
-
-// Mise à jour d'un membre
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modifier'])) {
-    $id_personnel = $_POST['id_personnel'];
-    $prenom       = $_POST['prenom'];
-    $nom          = $_POST['nom'];
-    $poste        = $_POST['poste'];
-    $login        = $_POST['login'];
-    $mot_de_passe = $_POST['mot_de_passe'];
-
-    if (!empty($mot_de_passe)) {
-        // Hachage du mot de passe si un nouveau est fourni
-        $mot_de_passe_hash = password_hash($mot_de_passe, PASSWORD_DEFAULT);
-        $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login, mot_de_passe = :mot_de_passe WHERE id_personnel = :id_personnel");
-        $requete_modifier->bindValue(':mot_de_passe', $mot_de_passe_hash);
-    } else {
-        $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login WHERE id_personnel = :id_personnel");
+        header("Location: {$_SERVER['PHP_SELF']}");
+        exit;
     }
-    $requete_modifier->bindValue(':prenom', $prenom);
-    $requete_modifier->bindValue(':nom', $nom);
-    $requete_modifier->bindValue(':poste', $poste);
-    $requete_modifier->bindValue(':login', $login);
-    $requete_modifier->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
-    $requete_modifier->execute();
 
-    header("Location: {$_SERVER['PHP_SELF']}");
-    exit;
-}
+    // Ajouter un membre
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajouter'])) {
+        $prenom = $_POST['prenom'];
+        $nom    = $_POST['nom'];
+        $poste  = $_POST['poste'];
+        $login  = $_POST['login'];
+        $mot_de_passe = $_POST['mot_de_passe'];
 
-// Récupérer les personnels
-$personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
+        // Vérifier que tous les champs sont remplis
+        if (!empty($prenom) && !empty($nom) && !empty($poste) && !empty($login) && !empty($mot_de_passe)) {
+            // Hachage du mot de passe
+            $mot_de_passe_hash = password_hash($mot_de_passe, PASSWORD_DEFAULT);
+
+            // Préparer et exécuter la requête d'insertion
+            $requete_ajouter = $pdo->prepare("INSERT INTO personnel (prenom, nom, poste, login, mot_de_passe) VALUES (:prenom, :nom, :poste, :login, :mot_de_passe)");
+            $requete_ajouter->bindValue(':prenom', $prenom);
+            $requete_ajouter->bindValue(':nom', $nom);
+            $requete_ajouter->bindValue(':poste', $poste);
+            $requete_ajouter->bindValue(':login', $login);
+            $requete_ajouter->bindValue(':mot_de_passe', $mot_de_passe_hash);
+
+            if ($requete_ajouter->execute()) {
+                header("Location: {$_SERVER['PHP_SELF']}");
+                exit;
+            } else {
+                echo "Erreur lors de l'ajout du membre.";
+            }
+        } else {
+            echo "Veuillez remplir tous les champs.";
+        }
+    }
+
+
+    // Mise à jour d'un membre
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modifier'])) {
+        $id_personnel = $_POST['id_personnel'];
+        $prenom       = $_POST['prenom'];
+        $nom          = $_POST['nom'];
+        $poste        = $_POST['poste'];
+        $login        = $_POST['login'];
+        $mot_de_passe = $_POST['mot_de_passe'];
+
+        if (!empty($mot_de_passe)) {
+            // Hachage du mot de passe si un nouveau est fourni
+            $mot_de_passe_hash = password_hash($mot_de_passe, PASSWORD_DEFAULT);
+            $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login, mot_de_passe = :mot_de_passe WHERE id_personnel = :id_personnel");
+            $requete_modifier->bindValue(':mot_de_passe', $mot_de_passe_hash);
+        } else {
+            $requete_modifier = $pdo->prepare("UPDATE personnel SET prenom = :prenom, nom = :nom, poste = :poste, login = :login WHERE id_personnel = :id_personnel");
+        }
+        $requete_modifier->bindValue(':prenom', $prenom);
+        $requete_modifier->bindValue(':nom', $nom);
+        $requete_modifier->bindValue(':poste', $poste);
+        $requete_modifier->bindValue(':login', $login);
+        $requete_modifier->bindValue(':id_personnel', $id_personnel, PDO::PARAM_INT);
+        $requete_modifier->execute();
+
+        header("Location: {$_SERVER['PHP_SELF']}");
+        exit;
+    }
+
+        // Récupérer les personnels
+        $personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
 ?>
 
 <!DOCTYPE html>
@@ -140,7 +156,7 @@ $personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light" style="background-color: #f8f9fa;">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light" style="background-color: #f8f9fa;">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
             <img src="https://mdbootstrap.com/img/Photos/new-templates/animal-shelter/logo.png" height="70" alt="logo du refuge" loading="lazy" />                
@@ -262,6 +278,45 @@ $personnels = filtrerDonneesParRole($pdo, $role_utilisateur, $id_utilisateur);
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
                         <button type="submit" name="modifier" class="btn btn-primary">Modifier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal d'ajout -->
+    <div class="modal fade" id="ajouterModal" tabindex="-1" aria-labelledby="ajouterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un Membre</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="prenom" class="form-label">Prénom</label>
+                            <input type="text" class="form-control" id="prenom" name="prenom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="nom" name="nom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="poste" class="form-label">Poste</label>
+                            <input type="text" class="form-control" id="poste" name="poste" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="login" class="form-label">Login</label>
+                            <input type="text" class="form-control" id="login" name="login" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="mot_de_passe" class="form-label">Mot de passe</label>
+                            <input type="password" class="form-control" id="mot_de_passe" name="mot_de_passe" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" name="ajouter" class="btn btn-success">Ajouter</button>
                     </div>
                 </form>
             </div>

@@ -121,6 +121,16 @@ function formatDate($date)
     return $dateTime ? $dateTime->format('d/m/Y') : 'N/A';
 }
 
+// Récupérer les cages libres
+$sql_cages_libres = "
+    SELECT c.* 
+    FROM cage c 
+    LEFT JOIN animal a ON c.id_cage = a.id_cage 
+    WHERE a.id_cage IS NULL
+";
+$stmt_cages_libres = $pdo->prepare($sql_cages_libres);
+$stmt_cages_libres->execute();
+$cages_libres = $stmt_cages_libres->fetchAll();
 // Formatage des dates pour chaque animal
 foreach ($animaux as &$animal) {
     $animal['date_naissance'] = formatDate($animal['date_naissance'] ?? null);
@@ -225,7 +235,17 @@ function getSortLink($column, $current_sort, $current_order)
                     <h1 class="text-center my-4">Gestion des Animaux</h1>
                 </div>
             </div>
-
+            <?php
+            // Afficher un message de succès ou d'erreur
+            if (isset($_SESSION['error'])) {
+                echo '<div class="alert alert-danger">' . $_SESSION['error'] . '</div>';
+                unset($_SESSION['error']);
+            }
+            if (isset($_SESSION['success'])) {
+                echo '<div class="alert alert-success">' . $_SESSION['success'] . '</div>';
+                unset($_SESSION['success']);
+            }
+            ?>
             <section class="content">
                 <div class="container-fluid">
                     <!-- Tableau -->
@@ -460,19 +480,19 @@ function getSortLink($column, $current_sort, $current_order)
                             <label for="image" class="form-label">URL de l'image</label>
                             <input type="text" class="form-control" id="image" name="image">
                         </div>
-                        <div class="mb-3">
-                            <label for="cage" class="form-label">Cage</label>
-                            <select class="form-control" id="cage" name="cage">
-                                <option value="">Non assignée</option>
-                                <?php
-                                // Récupérer la liste des cages disponibles
-                                $stmt = $pdo->query("SELECT id_cage, numero FROM cage");
-                                while ($cage = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$cage['id_cage']}'>{$cage['numero']}</option>";
-                                }
-                                ?>
+
+                        <div class="form-group">
+                            <label for="cage">Cage</label>
+                            <select class="form-control" name="cage" id="cage" required>
+                                <option value="">Sélectionner une cage</option>
+                                <?php foreach ($cages_libres as $cage) : ?>
+                                    <option value="<?= $cage['id_cage'] ?>">
+                                        Cage #<?= htmlspecialchars($cage['id_cage']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label for="espece" class="form-label">Espèce</label>
                             <select class="form-control" id="espece" name="espece" required>
@@ -499,6 +519,7 @@ function getSortLink($column, $current_sort, $current_order)
     <!-- AdminLTE JS -->
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
     <!-- JavaScript pour gérer la lightbox -->
+
     <script>
         document.querySelectorAll('.show-animal').forEach(button => {
             button.addEventListener('click', function() {
