@@ -24,7 +24,7 @@ $cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Cages</title>
+    <title>Gestion des Cages - Zoo Management</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
@@ -33,56 +33,37 @@ $cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- Styles personnalisés -->
     <style>
-        .cage-card {
-            width: 200px;
-            height: 200px;
-            margin: 10px;
-            padding: 15px;
-            border-radius: 10px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s;
-        }
-
-        .cage-card:hover {
-            transform: scale(1.05);
-        }
-
-        .cage-card.occupied {
-            background-color: rgb(47, 197, 85);
-            /* Vert pour les cages occupées */
-        }
-
-        .cage-card.vacant {
-            background-color: rgb(25, 102, 184);
-            /* Bleu pour les cages libres */
-        }
-
-        .cage-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .cage-card h3 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .cage-card p {
-            margin: 5px 0;
-            font-size: 1rem;
-        }
-
         .navbar-custom {
             background-color: rgb(72, 149, 182);
             color: white;
+        }
+
+        .card-cage .card-header {
+            padding: 0.5rem 1rem;
+        }
+
+        .card-cage .card-body {
+            padding: 1rem;
+        }
+
+        .status-occupied {
+            background-color: #28a745 !important;
+            color: white;
+        }
+
+        .status-vacant {
+            background-color: #007bff !important;
+            color: white;
+        }
+
+        .card-cage {
+            transition: all 0.3s;
+        }
+
+        .card-cage:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
@@ -94,29 +75,59 @@ $cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
     <div class="wrapper">
         <!-- Sidebar -->
         <?php include('./sidebar.php'); ?>
+
+        <!-- Content Wrapper -->
         <div class="content-wrapper">
+            <!-- Content Header -->
             <div class="content-header">
                 <div class="container-fluid">
                     <h1 class="text-center my-4">Gestion des Cages</h1>
                 </div>
             </div>
 
+            <!-- Main content -->
             <section class="content">
                 <div class="container-fluid">
-                    <!-- Grille des cages -->
-                    <div class="cage-grid">
+                    <div class="row">
                         <?php foreach ($cages as $cage): ?>
-                            <div class="cage-card <?= $cage['id_animal'] ? 'occupied' : 'vacant' ?>">
-                                <h3>Cage <?= htmlspecialchars($cage['numero']) ?></h3>
-                                <?php if ($cage['id_animal']): ?>
-                                    <p><?= htmlspecialchars($cage['nom_animal']) ?></p>
-                                    <p>ID: <?= htmlspecialchars($cage['id_animal']) ?></p>
-                                    <p>Espèce: <?= htmlspecialchars($cage['espece']) ?></p>
-                                <?php else: ?>
-                                    <p>Libre</p>
-                                <?php endif; ?>
-                                <p>Allée: <?= htmlspecialchars($cage['allee']) ?></p>
-                                <p>Salle: <?= htmlspecialchars($cage['salle']) ?></p>
+                            <div class="col-md-3 col-sm-6 col-12">
+                                <div class="card card-cage">
+                                    <div class="card-header <?php echo $cage['id_animal'] ? 'status-occupied' : 'status-vacant'; ?>">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-home mr-1"></i>
+                                            Cage <?= htmlspecialchars($cage['numero']) ?>
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php if ($cage['id_animal']): ?>
+                                            <p class="mb-1">
+                                                <i class="fas fa-paw mr-1"></i>
+                                                <?= htmlspecialchars($cage['nom_animal']) ?>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="fas fa-id-badge mr-1"></i>
+                                                ID: <?= htmlspecialchars($cage['id_animal']) ?>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="fas fa-leaf mr-1"></i>
+                                                Espèce: <?= htmlspecialchars($cage['espece']) ?>
+                                            </p>
+                                        <?php else: ?>
+                                            <p class="mb-1">
+                                                <i class="fas fa-check-circle mr-1"></i>
+                                                Statut: Libre
+                                            </p>
+                                        <?php endif; ?>
+                                        <p class="mb-1">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>
+                                            Allée: <?= htmlspecialchars($cage['allee']) ?>
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="fas fa-building mr-1"></i>
+                                            Salle: <?= htmlspecialchars($cage['salle']) ?>
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -125,8 +136,10 @@ $cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- Bootstrap JS (minimum requis pour le collapse) -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AdminLTE JS -->
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 </body>
 
 </html>

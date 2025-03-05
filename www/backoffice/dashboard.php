@@ -8,105 +8,79 @@ if (!isset($_SESSION['utilisateur'])) {
     exit;
 }
 
-// Récupérer les données pour les cartes
-$requete_animaux = $pdo->query("SELECT COUNT(*) AS total_animaux FROM animal");
-$total_animaux = $requete_animaux->fetch(PDO::FETCH_ASSOC)['total_animaux'];
+// Fonction pour exécuter une requête et retourner le résultat
+function fetchData($pdo, $query, $params = [])
+{
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
-$requete_cages = $pdo->query("
+// Récupération des données
+$total_animaux = fetchData($pdo, "SELECT COUNT(*) AS total_animaux FROM animal")['total_animaux'];
+
+$cages_data = fetchData($pdo, "
     SELECT COUNT(*) AS total_cages, SUM(IF(a.id_animal IS NOT NULL, 1, 0)) AS cages_occupees 
     FROM cage c 
     LEFT JOIN animal a ON c.id_cage = a.id_cage
 ");
-$cages_data = $requete_cages->fetch(PDO::FETCH_ASSOC);
 $total_cages = $cages_data['total_cages'];
 $cages_occupees = $cages_data['cages_occupees'];
 $taux_occupation = $total_cages > 0 ? round(($cages_occupees / $total_cages) * 100, 2) : 0;
 
-$requete_employes = $pdo->query("SELECT COUNT(*) AS total_employes FROM personnel");
-$total_employes = $requete_employes->fetch(PDO::FETCH_ASSOC)['total_employes'];
+$total_employes = fetchData($pdo, "SELECT COUNT(*) AS total_employes FROM personnel")['total_employes'];
+$total_especes = fetchData($pdo, "SELECT COUNT(DISTINCT id_espece) AS total_especes FROM animal_espece")['total_especes'];
 
-$requete_especes = $pdo->query("SELECT COUNT(DISTINCT id_espece) AS total_especes FROM animal_espece");
-$total_especes = $requete_especes->fetch(PDO::FETCH_ASSOC)['total_especes'];
-
-// Récupérer les données pour le diagramme camembert
-$requete_especes_animaux = $pdo->query("
+$especes_animaux = $pdo->query("
     SELECT e.nom AS espece, COUNT(a.id_animal) AS nombre_animaux 
     FROM animal a 
     INNER JOIN animal_espece ae ON a.id_animal = ae.id_animal 
     INNER JOIN espece e ON ae.id_espece = e.id_espece 
     GROUP BY e.nom
-");
-$especes_animaux = $requete_especes_animaux->fetchAll(PDO::FETCH_ASSOC);
+")->fetchAll(PDO::FETCH_ASSOC);
 
-// Préparer les données pour Chart.js
-$labels = [];
-$data = [];
-$colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']; // Couleurs pour le graphique
-
-foreach ($especes_animaux as $espece) {
-    $labels[] = $espece['espece'];
-    $data[] = $espece['nombre_animaux'];
-}
+// Préparation des données pour le graphique
+$labels = array_column($especes_animaux, 'espece');
+$data = array_column($especes_animaux, 'nombre_animaux');
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord</title>
+    <title>Tableau de Bord - Zoo Management</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
     <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-
-    <!-- Icônes Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Styles personnalisés -->
     <style>
-        .card-custom {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
-            height: 100%;
-            /* Uniformiser la hauteur */
-        }
-
-        .card-custom:hover {
-            transform: translateY(-5px);
-        }
-
-        .card-custom .bi {
-            font-size: 2rem;
-            margin-right: 10px;
-        }
-
-        .progress {
-            height: 10px;
-            border-radius: 5px;
-        }
-
-        .progress-bar {
-            background-color: rgba(251, 187, 201, 0.9);
-        }
-
-        .chart-container {
-            width: 50%;
-            /* Réduire la taille de la chart de 50% */
-            margin: auto;
-            padding: 20px;
-        }
-
         .navbar-custom {
             background-color: rgb(72, 149, 182);
             color: white;
+        }
+
+        .small-box {
+            border-radius: 0.25rem;
+            box-shadow: 0 0 1px rgba(0, 0, 0, .125), 0 1px 3px rgba(0, 0, 0, .2);
+        }
+
+        .small-box:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
         }
     </style>
 </head>
@@ -117,164 +91,190 @@ foreach ($especes_animaux as $espece) {
 
     <div class="wrapper">
         <!-- Sidebar -->
-        <?php include('./sidebar.php') ?>
+        <?php include('./sidebar.php'); ?>
+
+        <!-- Content Wrapper -->
         <div class="content-wrapper">
+            <!-- Content Header -->
             <div class="content-header">
                 <div class="container-fluid">
                     <h1 class="text-center my-4">Tableau de Bord</h1>
                 </div>
             </div>
 
+            <!-- Main content -->
             <section class="content">
                 <div class="container-fluid">
-                    <!-- Cartes d'informations -->
+                    <!-- Small boxes -->
                     <div class="row">
-                        <!-- Carte Animaux -->
-                        <div class="col-md-3">
-                            <a href="gestionAnimaux.php" class="text-decoration-none">
-                                <div class="card card-custom bg-purple text-white mb-4">
-                                    <div class="card-body d-flex align-items-center">
-                                        <i class="bi bi-gitlab"></i>
-                                        <div>
-                                            <h5 class="card-title">Animaux</h5>
-                                            <p class="card-text"><?= $total_animaux ?> animaux</p>
-                                        </div>
-                                    </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-info">
+                                <div class="inner">
+                                    <h3><?= $total_animaux ?></h3>
+                                    <p>Animaux</p>
                                 </div>
-                            </a>
+                                <div class="icon">
+                                    <i class="fas fa-paw"></i>
+                                </div>
+                                <a href="gestionAnimaux.php" class="small-box-footer">
+                                    Plus d'infos <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Carte Espèces -->
-                        <div class="col-md-3">
-                            <a href="gestionEspeces.php" class="text-decoration-none">
-                                <div class="card card-custom bg-warning text-dark mb-4">
-                                    <div class="card-body d-flex align-items-center">
-                                        <i class="bi bi-balloon-heart"></i>
-                                        <div>
-                                            <h5 class="card-title">Espèces</h5>
-                                            <p class="card-text"><?= $total_especes ?> espèces</p>
-                                        </div>
-                                    </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-success">
+                                <div class="inner">
+                                    <h3><?= $total_especes ?></h3>
+                                    <p>Espèces</p>
                                 </div>
-                            </a>
+                                <div class="icon">
+                                    <i class="fas fa-leaf"></i>
+                                </div>
+                                <a href="gestionEspeces.php" class="small-box-footer">
+                                    Plus d'infos <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Carte Cages -->
-                        <div class="col-md-3">
-                            <a href="gestionCages.php" class="text-decoration-none">
-                                <div class="card card-custom bg-danger text-white mb-4">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-house-door-fill"></i>
-                                            <div>
-                                                <h5 class="card-title">Cages</h5>
-                                                <p class="card-text"><?= $taux_occupation ?>% occupées</p>
-                                            </div>
-                                        </div>
-                                        <div class="progress mt-2">
-                                            <div class="progress-bar" style="width: <?= $taux_occupation ?>%;"></div>
-                                        </div>
-                                    </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-danger">
+                                <div class="inner">
+                                    <h3><?= $taux_occupation ?><sup style="font-size: 20px">%</sup></h3>
+                                    <p>Cages occupées</p>
                                 </div>
-                            </a>
+                                <div class="icon">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <a href="gestionCages.php" class="small-box-footer">
+                                    Plus d'infos <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Carte Employés -->
-                        <div class="col-md-3">
-                            <a href="gestionPersonnel.php" class="text-decoration-none">
-                                <div class="card card-custom bg-primary text-white mb-4">
-                                    <div class="card-body d-flex align-items-center">
-                                        <i class="bi bi-people-fill"></i>
-                                        <div>
-                                            <h5 class="card-title">Personnel</h5>
-                                            <p class="card-text"><?= $total_employes ?> employés</p>
-                                        </div>
-                                    </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-primary">
+                                <div class="inner">
+                                    <h3><?= $total_employes ?></h3>
+                                    <p>Employés</p>
                                 </div>
-                            </a>
+                                <div class="icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <a href="gestionPersonnel.php" class="small-box-footer">
+                                    Plus d'infos <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Section Diagramme -->
-                    <div class="row mt-4">
-                        <div class="col-md-12 h-75"> <!-- Changer la hauteur à 50% -->
-                            <div class="card card-custom h-75"> <!-- Définir une hauteur fixe -->
-                                <div class="card-header bg-secondary text-white">
-                                    <h5 class="card-title">Répartition des espèces</h5>
+                    <!-- Chart -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card shadow">
+                                <div class="card-header bg-primary text-white">
+                                    <h3 class="card-title">Répartition des Espèces</h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool text-white" onclick="changeChartType('pie')">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-tool text-white" onclick="changeChartType('bar')">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body">
-                                    <!-- Boutons pour changer le type de graphique -->
-                                    <div class="d-flex justify-content-center mb-3">
-                                        <button onclick="changeChartType('pie')" class="btn btn-sm btn-primary me-2">Camembert</button>
-                                        <button onclick="changeChartType('bar')" class="btn btn-sm btn-primary">Histogramme</button>
-                                    </div>
-                                    <!-- Conteneur du graphique -->
-                                    <div class="chart-container mx-auto" style="max-width: 400px;"> <!-- Définir une largeur maximale -->
+                                    <div class="chart-container">
                                         <canvas id="especesChart"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </section>
         </div>
     </div>
 
-    <!-- Script pour Chart.js -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AdminLTE JS -->
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+
+    <!-- Chart.js Script -->
+    <!-- Remplacez le script Chart.js existant par celui-ci -->
     <script>
         const ctx = document.getElementById('especesChart').getContext('2d');
         let especesChart;
 
-        // Données principales
         const mainLabels = <?= json_encode($labels) ?>;
         const mainData = <?= json_encode($data) ?>;
-        const mainColors = <?= json_encode($colors) ?>;
 
-        // Fonction pour créer le graphique
+        // Définir les couleurs spécifiques par espèce
+        const couleursEspeces = {
+            'Chien': '#335c67',
+            'Chat': '#FF9800',
+            'Cheval': '#A0522D',
+            'Girafe': '#FFD54F',
+            'Éléphant': '#9E9E9E',
+            'Serpent': '#2E7D32',
+            'Crocodile': '#9C27B0',
+            'Loup': '#344f64',
+            'Âne': '#5d5737'
+        };
+
+        // Créer un tableau de couleurs correspondant aux labels
+        const backgroundColors = mainLabels.map(label => couleursEspeces[label] || '#CCCCCC'); // Gris par défaut si espèce non trouvée
+        const borderColors = backgroundColors.map(color => color); // Même couleur pour les bordures
+
         function createChart(type) {
-            if (especesChart) {
-                especesChart.destroy();
-            }
+            if (especesChart) especesChart.destroy();
             especesChart = new Chart(ctx, {
                 type: type,
                 data: {
                     labels: mainLabels,
                     datasets: [{
                         data: mainData,
-                        backgroundColor: mainColors,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: type === 'pie', // Masquer la légende pour l'histogramme
-                            position: 'bottom',
-                            labels: {
-                                font: {
-                                    size: 14
-                                }
+                            position: 'right',
+                            display: type === 'pie'
+                        }
+                    },
+                    scales: type === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Nombre d\'animaux'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Espèces'
                             }
                         }
-                    }
+                    } : {}
                 }
             });
         }
 
-        // Fonction pour changer le type de graphique
         function changeChartType(type) {
             createChart(type);
         }
 
-        // Initialiser le graphique en camembert par défaut
+        // Initialiser avec le graphique en pie
         createChart('pie');
     </script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
