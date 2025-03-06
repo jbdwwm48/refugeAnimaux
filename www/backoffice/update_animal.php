@@ -54,32 +54,42 @@ $sql_cages_libres = "
     SELECT c.* 
     FROM cage c 
     LEFT JOIN animal a ON c.id_cage = a.id_cage 
-    WHERE a.id_cage IS NULL
+    WHERE a.id_cage IS NULL OR c.id_cage = ?
 ";
 $stmt_cages_libres = $pdo->prepare($sql_cages_libres);
-$stmt_cages_libres->execute();
+$stmt_cages_libres->execute([$animal['id_cage']]); // Inclure la cage actuelle de l'animal
 $cages_libres = $stmt_cages_libres->fetchAll();
 
-// Mettre à jour les données si le formulaire est soumis
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Nettoyage et validation des données
     $nom = sanitizeString($_POST['nom']);
     $genre = in_array($_POST['genre'], ['M', 'F']) ? $_POST['genre'] : null;
-    $numero = validateInt($_POST['numero']) ? $_POST['numero'] : null;
+
+    // Récupérer le numéro (peut contenir des lettres et des chiffres)
+    $numero = sanitizeString($_POST['numero']); // Utilisez sanitizeString au lieu de validateInt
+
     $pays = sanitizeString($_POST['pays']);
     $date_naissance = validateDate($_POST['date_naissance']) ? $_POST['date_naissance'] : null;
     $date_arrivee = validateDate($_POST['date_arrivee']) ? $_POST['date_arrivee'] : null;
     $historique = sanitizeString($_POST['historique']);
+
+    // Récupérer et valider l'URL de l'image
     $image = sanitizeString($_POST['image']);
-    $id_cage = validateInt($_POST['cage']) ? $_POST['cage'] : null;
+    if (!empty($image) && !filter_var($image, FILTER_VALIDATE_URL)) {
+        $_SESSION['error'] = "L'URL de l'image est invalide.";
+    }
+
+    // Récupérer la cage sélectionnée ou garder la cage actuelle
+    $id_cage = validateInt($_POST['cage']) ? $_POST['cage'] : $animal['id_cage'];
+
     $id_espece = validateInt($_POST['espece']) ? $_POST['espece'] : null;
 
-    if ($nom && $genre && $numero && $pays && $date_naissance && $date_arrivee && $id_cage && $id_espece) {
+    if ($nom && $genre && $numero && $pays && $date_naissance && $date_arrivee && $id_espece) {
         // Mise à jour des informations de l'animal
-        $update_sql = "UPDATE animal SET nom = ?, genre = ?, numero = ?, pays = ?, date_naissance = ?, date_arrivee = ?, historique = ?, id_cage = ? WHERE id_animal = ?";
+        $update_sql = "UPDATE animal SET nom = ?, genre = ?, numero = ?, pays = ?, date_naissance = ?, date_arrivee = ?, historique = ?, image = ?, id_cage = ? WHERE id_animal = ?";
         $stmt = $pdo->prepare($update_sql);
 
-        if ($stmt->execute([$nom, $genre, $numero, $pays, $date_naissance, $date_arrivee, $historique, $id_cage, $id_animal])) {
+        if ($stmt->execute([$nom, $genre, $numero, $pays, $date_naissance, $date_arrivee, $historique, $image, $id_cage, $id_animal])) {
             // Supprimer l'ancienne espèce
             $delete_espece_sql = "DELETE FROM animal_espece WHERE id_animal = ?";
             $pdo->prepare($delete_espece_sql)->execute([$id_animal]);
@@ -95,7 +105,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     $_SESSION['error'] = "Erreur lors de la mise à jour.";
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -139,7 +148,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="form-group">
                 <label for="numero">Numéro</label>
-                <input type="number" class="form-control" name="numero" id="numero" value="<?= $animal['numero'] ?>" required>
+                <input type="text" class="form-control" name="numero" id="numero" value="<?= $animal['numero'] ?>">
             </div>
 
             <div class="form-group">
@@ -163,17 +172,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="mb-3">
                 <label for="image" class="form-label">URL de l'image</label>
-                <input type="url" class="form-control" id="image" name="image" placeholder="https://exemple.com/image.jpg" oninput="previewImage()">
-                <img id="imagePreview" src="" alt="Aperçu" class="mt-2" style="max-width: 200px; display: none;">
+                <input type="url" class="form-control" id="image" name="image" placeholder="https://exemple.com/image.jpg" value="<?= htmlspecialchars($animal['image']) ?>" oninput="previewImage()">
+                <img id="imagePreview" src="<?= htmlspecialchars($animal['image']) ?>" alt="Aperçu" class="mt-2" style="max-width: 200px; display: <?= !empty($animal['image']) ? 'block' : 'none' ?>;">
             </div>
 
             <div class="form-group">
                 <label for="cage">Cage</label>
-                <select class="form-control" name="cage" id="cage" required>
+                <select class="form-control" name="cage" id="cage">
                     <option value="">Sélectionner une cage</option>
                     <?php foreach ($cages_libres as $cage) : ?>
                         <option value="<?= $cage['id_cage'] ?>" <?= ($animal['id_cage'] == $cage['id_cage']) ? 'selected' : '' ?>>
-                            Cage #<?= htmlspecialchars($cage['id_cage']) ?>
+                            Cage #<?= htmlspecialchars($cage['numero']) ?>
+                            <?= ($animal['id_cage'] == $cage['id_cage']) ? '(Actuelle)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -194,5 +204,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
     </div>
 </body>
+
+<script>
+    function previewImage() {
+        const imageUrl = document.getElementById('image').value;
+        const imagePreview = document.getElementById('imagePreview');
+        if (imageUrl) {
+            imagePreview.src = imageUrl;
+            imagePreview.style.display = 'block';
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    }
+</script>
 
 </html>
