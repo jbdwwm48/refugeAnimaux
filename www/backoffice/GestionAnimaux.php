@@ -177,7 +177,7 @@ function getSortLink($column, $current_sort, $current_order)
         }
 
         .navbar-custom {
-            background-color: rgb(72, 149, 182);
+            background-color: #19433e;
             color: white;
         }
 
@@ -238,13 +238,13 @@ function getSortLink($column, $current_sort, $current_order)
             </div>
             <!-- Afficher un message de succès ou d'erreur -->
             <?php if (isset($_SESSION['success'])) : ?>
-                        <div class="alert alert-success m-4" role="alert"><?= $_SESSION['success'] ?></div>
-                        <?php unset($_SESSION['success']); ?>
-                    <?php endif; ?>
-                    <?php if (isset($_SESSION['error'])) : ?>
-                        <div class="alert alert-danger m-4" role="alert"><?= $_SESSION['error'] ?></div>
-                        <?php unset($_SESSION['error']); ?>
-                    <?php endif; ?>
+                <div class="alert alert-success m-4" role="alert"><?= $_SESSION['success'] ?></div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error'])) : ?>
+                <div class="alert alert-danger m-4" role="alert"><?= $_SESSION['error'] ?></div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
 
             <section class="content">
                 <div class="container-fluid">

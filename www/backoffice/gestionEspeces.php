@@ -150,7 +150,7 @@ function getSortLink($column, $current_sort, $current_order)
         }
 
         .navbar-custom {
-            background-color: rgb(72, 149, 182);
+            background-color: #19433e;
             color: white;
         }
 

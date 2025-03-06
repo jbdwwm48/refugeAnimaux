@@ -35,7 +35,7 @@ $cages = $requete_cages->fetchAll(PDO::FETCH_ASSOC);
 
     <style>
         .navbar-custom {
-            background-color: rgb(72, 149, 182);
+            background-color: #19433e;
             color: white;
         }
 

@@ -63,7 +63,7 @@ $data = array_column($especes_animaux, 'nombre_animaux');
 
     <style>
         .navbar-custom {
-            background-color: rgb(72, 149, 182);
+            background-color: #19433e;
             color: white;
         }
 
