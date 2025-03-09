@@ -1,11 +1,10 @@
-# # Ignore MySQL socket files
-# # Ignorer le dossier contenant la base MySQL
+# Ignorer tout le dossier db/ contenant les fichiers MySQL
 db/
-backup/
 
-# # Ignorer les fichiers SQL temporaires (mais garder les exports)
-# *.sql~
+# Ignorer les fichiers temporaires de Docker
+docker-compose.override.yml
+*.pid
+*.log
 
-# Ingorer les fichiers lier a Bootstrap
-assets/css
-assets/fonts
+# Ignorer les fichiers SQL temporaires
+*.sql~
