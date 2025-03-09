@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'login' => $utilisateur['login'] // Login de l'utilisateur
         ];
 
+        // Définir l'heure de la dernière activité
+        $_SESSION['last_activity'] = time();
+
         // Rediriger vers le tableau de bord
         header('Location: ../backoffice/dashboard.php');
         exit;
@@ -41,8 +44,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-
-// Debug : Afficher le contenu de la session (à des fins de débogage, à retirer en production)
-echo "<pre>";
-print_r($_SESSION);
-echo "</pre>";

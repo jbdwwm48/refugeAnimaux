@@ -2,17 +2,8 @@
 session_start();
 require '../auth/initDb.php';
 
-// Vérifie si l'utilisateur est connecté et a les droits nécessaires
-if (!isset($_SESSION['utilisateur']) || $_SESSION['utilisateur']['poste'] === 'soigneur') {
-    header('Location: ../index.php');
-    exit;
-}
-
-// Récupérer toutes les espèces
-$sql_all_especes = "SELECT * FROM espece";
-$stmt_all_especes = $pdo->prepare($sql_all_especes);
-$stmt_all_especes->execute();
-$especes = $stmt_all_especes->fetchAll();
+// Activer les exceptions PDO pour détecter les erreurs SQL
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     function sanitizeString($str)
@@ -41,14 +32,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_cage = isset($_POST['cage']) && validateInt($_POST['cage']) ? $_POST['cage'] : null;
     $id_espece = isset($_POST['espece']) && validateInt($_POST['espece']) ? $_POST['espece'] : null;
 
-    // Gestion de l'image : URL ou upload
-    $imagePath = null;
+    // Initialiser $image avec une valeur par défaut (null)
+    $image = null;
 
-    // Vérification de l'URL fournie
-    if (!empty($_POST['image_url'])) {
-        $image_url = sanitizeString($_POST['image_url']);
+    // Validation de l'espèce
+    if ($id_espece) {
+        $stmt = $pdo->prepare("SELECT id_espece FROM espece WHERE id_espece = ?");
+        $stmt->execute([$id_espece]);
+        if (!$stmt->fetch()) {
+            $_SESSION['error'] = "L'espèce sélectionnée n'existe pas.";
+            header('Location: gestionAnimaux.php');
+            exit;
+        }
+    } else {
+        $_SESSION['error'] = "Veuillez sélectionner une espèce.";
+        header('Location: gestionAnimaux.php');
+        exit;
+    }
+
+    // Vérification de l'URL de l'image
+    if (!empty($_POST['image'])) {
+        $image_url = sanitizeString($_POST['image']);
         if (filter_var($image_url, FILTER_VALIDATE_URL)) {
-            $imagePath = $image_url;
+            $image = $image_url;
         } else {
             $_SESSION['error'] = "L'URL de l'image est invalide.";
             header('Location: gestionAnimaux.php');
@@ -64,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO animal (nom, genre, numero, pays, date_naissance, date_arrivee, historique, image, id_cage)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nom, $genre, $numero, $pays, $date_naissance, $date_arrivee, $historique, $imagePath, $id_cage]);
+            $stmt->execute([$nom, $genre, $numero, $pays, $date_naissance, $date_arrivee, $historique, $image, $id_cage]);
 
             // Récupérer l'ID de l'animal inséré
             $id_animal = $pdo->lastInsertId();

@@ -1,23 +1,18 @@
 <?php
 session_start();
 require './auth/initDb.php';
+require './auth/checkSession.php'; // Inclure avant toute sortie
 
 // Vérifier si un paramètre de filtre est passé en sécurisant l'entrée
 $id_espece = filter_input(INPUT_GET, 'id_espece', FILTER_VALIDATE_INT);
 
 // Définition des couleurs par espèce avec bordure et fond du li
 $couleurs_especes = [
-    'Chien' => ['border' => '#1A3C34', 'li_bg' => '#A8D5BA', 'li_text' => '#1A3C34'], // Vert profond -> Vert clair
-    'Chat' => ['border' => '#D84315', 'li_bg' => '#FFCCBC', 'li_text' => '#D84315'], // Orange vif -> Orange pâle
-    'Cheval' => ['border' => '#4A2C2A', 'li_bg' => '#D4A5A5', 'li_text' => '#4A2C2A'], // Marron riche -> Marron clair
-    'Girafe' => ['border' => '#F9A825', 'li_bg' => '#FFF9C4', 'li_text' => '#F9A825'], // Jaune doré -> Jaune pâle
-    'Éléphant' => ['border' => '#37474F', 'li_bg' => '#CFD8DC', 'li_text' => '#37474F'], // Gris foncé -> Gris clair
-    'Serpent' => ['border' => '#2E7D32', 'li_bg' => '#C8E6C9', 'li_text' => '#2E7D32'], // Vert émeraude -> Vert pâle
-    'Crocodile' => ['border' => '#4A148C', 'li_bg' => '#D1C4E9', 'li_text' => '#4A148C'], // Violet profond -> Violet clair
-    'Loup' => ['border' => '#0D1B2A', 'li_bg' => '#B0BEC5', 'li_text' => '#0D1B2A'], // Bleu-gris foncé -> Bleu-gris clair
-    'Âne' => ['border' => '#78909C', 'li_bg' => '#ECEFF1', 'li_text' => '#455A64'] // Gris bleuté -> Gris très clair
+    'Chien' => ['border' => '#1A3C34', 'li_bg' => '#A8D5BA', 'li_text' => '#1A3C34'],
+    'Chat' => ['border' => '#D84315', 'li_bg' => '#FFCCBC', 'li_text' => '#D84315'],
+    // ... (le reste de vos couleurs)
 ];
-$couleur_defaut = ['border' => '#455A64', 'li_bg' => '#CFD8DC', 'li_text' => '#455A64']; // Gris bleuté par défaut
+$couleur_defaut = ['border' => '#455A64', 'li_bg' => '#CFD8DC', 'li_text' => '#455A64'];
 
 // Fonction pour obtenir les couleurs selon l'espèce
 function getCouleursEspece($nom_espece, $couleurs_especes, $couleur_defaut)
@@ -50,6 +45,7 @@ $animaux = $requete_animaux->fetchAll(PDO::FETCH_ASSOC);
 $requete_especes = $pdo->query("SELECT id_espece, nom FROM espece");
 $especes = $requete_especes->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 

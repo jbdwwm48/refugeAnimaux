@@ -152,7 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <div class="form-group">
-                <label for="pays">Pays</label>
+                <label for="pays">Pays d'origine</label>
                 <input type="text" class="form-control" name="pays" id="pays" value="<?= $animal['pays'] ?>" required>
             </div>
             <div class="form-group">

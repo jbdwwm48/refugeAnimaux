@@ -31,6 +31,7 @@ if (isset($_GET['delete'])) {
 
     try {
         // Active les exceptions PDO pour gérer les erreurs SQL
+
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         // Commence une transaction pour que toutes les suppressions se fassent en une seule fois
         $pdo->beginTransaction();
@@ -447,6 +448,7 @@ function getSortLink($column, $current_sort, $current_order)
                         <div class="mb-3">
                             <label class="form-label">Genre</label>
                             <div>
+
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="radio" id="genreF" name="genre" value="F" required checked>
                                     <label class="form-check-label" for="genreF">Femelle</label>
@@ -455,6 +457,7 @@ function getSortLink($column, $current_sort, $current_order)
                                     <input class="form-check-input" type="radio" id="genreM" name="genre" value="M" required>
                                     <label class="form-check-label" for="genreM">Mâle</label>
                                 </div>
+
                             </div>
                         </div>
 
@@ -484,9 +487,9 @@ function getSortLink($column, $current_sort, $current_order)
                         </div>
 
                         <div class="mb-3">
-                            <label for="image_url" class="form-label">URL de l'image</label>
-                            <input type="url" class="form-control" id="image_url" name="image_url" placeholder="https://exemple.com/image.jpg">
-                            <img id="imagePreview" src="" alt="Aperçu de l'image" class="mt-2" style="max-width: 200px; display: none;">
+                            <label for="image" class="form-label">URL de l'image</label>
+                            <input type="url" class="form-control" id="image" name="image" placeholder="https://exemple.com/image.jpg" value="">
+                            <img id="imagePreview" src="<?= htmlspecialchars($animal['image']) ?>" alt="Aperçu" class="mt-2" style="max-width: 200px; display: <?= !empty($animal['image']) ? 'block' : 'none' ?>;">
                         </div>
 
                         <div class="form-group">
@@ -499,13 +502,22 @@ function getSortLink($column, $current_sort, $current_order)
                             </select>
                         </div>
 
+                        <?php
+                        // Récupérer toutes les espèces depuis la base de données
+                        $sql = "SELECT id_espece, nom FROM espece";
+                        $especes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                        ?>
+
+
                         <!-- Espèce -->
-                        <div class="mb-3">
-                            <label for="espece" class="form-label">Espèce</label>
-                            <select class="form-control" id="espece" name="espece" required>
+                        <div class="form-group">
+                            <label for="espece">Espèce</label>
+                            <select class="form-control" name="espece" id="espece" required>
                                 <option value="">Sélectionner une espèce</option>
                                 <?php foreach ($especes as $espece) : ?>
-                                    <option value="<?= $espece['id_espece'] ?>"><?= htmlspecialchars($espece['nom']) ?></option>
+                                    <option value="<?= $espece['id_espece'] ?>">
+                                        <?= htmlspecialchars($espece['nom']) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -521,10 +533,10 @@ function getSortLink($column, $current_sort, $current_order)
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- AdminLTE JS -->
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-    <!-- JavaScript pour gérer la lightbox -->
 
+    <!-- JavaScript pour gérer la lightbox -->
     <script>
-        document.getElementById('image_url').addEventListener('input', function() {
+        document.getElementById('image').addEventListener('input', function() {
             const imageUrl = this.value;
             const imagePreview = document.getElementById('imagePreview');
             if (imageUrl) {
@@ -535,42 +547,55 @@ function getSortLink($column, $current_sort, $current_order)
             }
         });
 
-        document.querySelectorAll('.show-animal').forEach(button => {
-            button.addEventListener('click', function() {
-                const animalId = this.getAttribute('data-id');
-                const animals = <?php echo json_encode($animaux); ?>;
-                const animal = animals.find(a => a.id_animal == animalId);
+        // Quand la page est chargée
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gérer l'ouverture de la lightbox
+            document.querySelectorAll('.show-animal').forEach(button => {
+                button.addEventListener('click', function() {
+                    console.log('Click détecté');
+                    const animalId = this.getAttribute('data-id');
+                    const animals = <?php echo json_encode($animaux); ?>;
+                    const animal = animals.find(a => a.id_animal == animalId);
 
-                if (animal) {
-                    const details = `
-                            <table class="table table-sm table-bordered">
-                                <tr><th>Nom</th><td>${animal.nom}</td></tr>
-                                <tr><th>Genre</th><td>${animal.genre}</td></tr>
-                                <tr><th>Numéro</th><td>${animal.numero}</td></tr>
-                                <tr><th>Pays</th><td>${animal.pays || 'N/A'}</td></tr>
-                                <tr><th>Date de naissance</th><td>${animal.date_naissance}</td></tr>
-                                <tr><th>Date d'arrivée</th><td>${animal.date_arrivee}</td></tr>
-                                <tr><th>Cage</th><td>${animal.cage || 'Non assignée'}</td></tr>
-                                <tr><th>Espèce</th><td>${animal.espece}</td></tr>
-                                <tr><th>Historique</th><td>${animal.historique || 'Aucun'}</td></tr>
-                                ${animal.image ? `<tr><th>Image</th><td><img src="${animal.image}" alt="${animal.nom}" style="max-width: 200px;"></td></tr>` : ''}
-                            </table>
-                    `;
-                    document.getElementById('animal-details').innerHTML = details;
-                    document.getElementById('animal-lightbox').style.display = 'flex';
-                }
+                    if (animal) {
+                        const details = `
+                    <table class="table table-sm table-bordered">
+                        <tr><th>Nom</th><td>${animal.nom}</td></tr>
+                        <tr><th>Genre</th><td>${animal.genre}</td></tr>
+                        <tr><th>Numéro</th><td>${animal.numero}</td></tr>
+                        <tr><th>Pays</th><td>${animal.pays || 'N/A'}</td></tr>
+                        <tr><th>Date de naissance</th><td>${animal.date_naissance}</td></tr>
+                        <tr><th>Date d'arrivée</th><td>${animal.date_arrivee}</td></tr>
+                        <tr><th>Cage</th><td>${animal.cage || 'Non assignée'}</td></tr>
+                        <tr><th>Espèce</th><td>${animal.espece}</td></tr>
+                        <tr><th>Historique</th><td>${animal.historique || 'Aucun'}</td></tr>
+                        ${animal.image ? `<tr><th>Image</th><td><img src="${animal.image}" alt="${animal.nom}" style="max-width: 200px;"></td></tr>` : ''}
+                    </table>
+                `;
+
+                        document.getElementById('animal-details').innerHTML = details;
+                        document.getElementById('animal-lightbox').style.display = 'flex';
+                    }
+                });
             });
-        });
 
-        document.querySelector('.close-btn').addEventListener('click', function() {
-            document.getElementById('animal-lightbox').style.display = 'none';
-        });
+            // Gérer la fermeture de la lightbox
+            const closeBtn = document.querySelector('.close-btn');
+            const lightbox = document.getElementById('animal-lightbox');
 
-        document.getElementById('animal-lightbox').addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.style.display = 'none';
+            if (closeBtn && lightbox) {
+                closeBtn.addEventListener('click', function() {
+                    lightbox.style.display = 'none';
+                });
+
+                lightbox.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
             }
         });
+
 
         document.addEventListener('DOMContentLoaded', function() {
             // Gérer l'ouverture du modal de suppression

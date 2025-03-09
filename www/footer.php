@@ -64,7 +64,7 @@
 
 <style>
     .footer-custom {
-        background-color: rgb(110, 183, 154);
+        background-color: #58d9ce;
     }
 
     .footer-custom a:hover {
